@@ -1,0 +1,34 @@
+blueprint:
+  name: Aula inteligente 1
+  description: "es un plugin diseñado para la automatización integral de salones de clase. Su objetivo principal es optimizar la gestión y operación del entorno educativo"
+  domain: automation
+  input:
+    interruptor:
+      name: Motion Sensor
+      description: "Un sensor de movimiento para detectar la presencia en el aula."
+      selector:
+        entity:
+          filter:
+            domain: switch
+            device_class: interruptor
+    target_light:
+      name: Light
+      description: "Una luz que se encenderá o apagará según la presencia detectada."
+      selector:
+        entity:
+         - domain: light
+
+alias: test_1
+description: " Automatización para controlar una luz basada en un sensor de movimiento."
+triggers:
+  - trigger: state
+    entity_id: !input interruptor
+actions:
+  - action: |
+      {% if trigger.to_state.state == "on" %}
+        switch.turn_on
+      {% else %}
+        switch.turn_off
+      {% endif %}
+    target:
+      entity_id: !input target_light
