@@ -5,18 +5,26 @@ blueprint:
   input:
     interruptor:
       name: Motion Sensor
-      description: "Un sensor de movimiento para detectar la presencia en el aula."
+      description: "Un sensor de movimiento (binary_sensor) o un switch para detectar la presencia en el aula."
       selector:
-        entity:
-          domain: binary_sensor
-          device_class: motion
+          entity:
+              domain: binary_sensor
+              device_class: motion
+
     target_light:
       name: Light
       description: "Una luz que se encenderá o apagará según la presencia detectada."
       selector:
         entity:
           domain: light
-
+    target_climate:
+      name: Termostato
+      description: "Un termostato para ajustar la temperatura del aula."
+      selector:
+        target:
+          entity:
+            domain: climate
+            
 mode: single
 
 trigger:
@@ -37,11 +45,8 @@ action:
           - service: light.turn_on
             target:
               entity_id: !input target_light
-      - conditions:
-          - condition: state
-            entity_id: !input interruptor
-            state: "off"
-        sequence:
-          - service: light.turn_off
-            target:
-              entity_id: !input target_light
+          - service: climate.set_hvac_mode
+            target: !input target_climate
+            data:
+              hvac_mode: "cool"
+
