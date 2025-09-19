@@ -4,23 +4,25 @@ blueprint:
   domain: automation
   input:
     motion_sensor_battery:
-      name: Motion Sensor Battery
+      name: Sensor de Movimiento (Batería)
       description: "Un sensor de movimiento (binary_sensor) para detectar la presencia en el aula."
+      default: ""
       selector:
         entity:
           domain: binary_sensor
           device_class: motion
 
     motion_sensor_electrical:
-      name: Motion Sensor Electrical
+      name: Sensor de Movimiento (Eléctrico)
       description: "Un interruptor que simula el sensor de movimiento eléctrico."
+      default: ""
       selector:
         entity:
           domain: switch
 
     target_light:
-      name: Light
-      description: "Una luz que se encenderá o apagará según la presencia detectada."
+      name: Iluminación del Aula
+      description: "Luz o grupo de luces que se controlarán automáticamente."
       selector:
         entity:
           domain: light
@@ -28,31 +30,64 @@ blueprint:
     target_climate:
       name: Termostato
       description: "Un termostato para ajustar la temperatura del aula."
+      default: ""
       selector:
         target:
           entity:
             domain: climate
 
+    classroom_status:
+      name: Estado del Aula (Helper)
+      description: "Helper input_select o input_text que mostrará LIBRE u OCUPADA."
+      selector:
+        entity:
+          domain: input_select
+
+    target_temperature:
+      name: Temperatura Objetivo
+      description: "Temperatura deseada cuando hay presencia en el aula."
+      default: 22
+      selector:
+        number:
+          min: 20
+          max: 26
+          unit_of_measurement: "°C"
+          mode: slider
+
     off_delay:
       name: Tiempo de apagado
-      description: "Tiempo de espera antes de apagar tras no detectar presencia (ej: 5 minutos)."
+      description: "Tiempo de espera antes de considerar el aula libre tras no detectar presencia."
       default: 300
       selector:
         number:
-          min: 30
-          max: 3600
+          min: 60
+          max: 1800
           unit_of_measurement: seconds
           mode: slider
+          step: 30
 
-mode: single
+mode: restart
+max_exceeded: silent
 
-triggers:
-  - trigger: state
+trigger:
+  - platform: state
     entity_id: !input motion_sensor_battery
-  - trigger: state
+    id: "battery_sensor"
+    enabled: "{{ motion_sensor_battery != '' }}"
+  - platform: state
     entity_id: !input motion_sensor_electrical
+    id: "electrical_sensor"
+    enabled: "{{ motion_sensor_electrical != '' }}"
+
+condition: []
 
 actions:
+  - variables:
+      motion_battery: !input motion_sensor_battery
+      motion_electrical: !input motion_sensor_electrical
+      climate_entity: !input target_climate
+      status_entity: !input classroom_status
+
   - choose:
       - conditions:
           - condition: template
