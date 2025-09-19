@@ -90,9 +90,21 @@ actions:
 
   - choose:
       - conditions:
-          - condition: template
-            value_template: "{{ trigger.to_state.state == 'on' }}"
+          - condition: or
+            conditions:
+              - condition: template
+                value_template: "{{ trigger.to_state.state == 'on' }}"
         sequence:
+          - choose:
+              - conditions:
+                  - condition: template
+                    value_template: "{{ status_entity.startswith('input_select.') }}"
+                sequence:
+                  - service: input_select.set_option
+                    target:
+                      entity_id: !input classroom_status
+                    data: "OCUPADA"
+
           - service: light.turn_on
             target:
               entity_id: !input target_light
@@ -102,11 +114,31 @@ actions:
               hvac_mode: "cool"
 
       - conditions:
-          - condition: template
-            value_template: "{{ trigger.to_state.state == 'off' }}"
+          - condition: or
+            conditions:
+              - condition: template
+                value_template: "{{ trigger.to_state.state in ['off', 'clear'] }}"
+
         sequence:
           - delay:
               seconds: !input off_delay
+
+          - condition: template
+            value_template: >-
+              {%- set battery_clear = motion_battery == '' or states(motion_battery) in ['off', 'clear'] -%}
+              {%- set electrical_clear = motion_electrical == '' or states(motion_electrical) in ['off', 'clear'] -%}
+              {{ battery_clear and electrical_clear }}
+
+          - choose:
+              - conditions:
+                  - condition: template
+                    value_template: "{{ status_entity.startswith('input_select.') }}"
+                sequence:
+                  - service: input_select.set_option
+                    target:
+                      entity_id: !input classroom_status
+                    data: "LIBRE"
+
           - service: light.turn_off
             target:
               entity_id: !input target_light
