@@ -73,13 +73,17 @@ trigger:
   - platform: state
     entity_id: !input motion_sensor_battery
     id: "battery_sensor"
-    enabled: "{{ motion_sensor_battery != '' }}"
+
   - platform: state
     entity_id: !input motion_sensor_electrical
     id: "electrical_sensor"
-    enabled: "{{ motion_sensor_electrical != '' }}"
 
-condition: []
+condition:
+  - condition: template
+    value_template: >
+      {% set battery_entity = motion_sensor_battery %}
+      {% set electrical_entity = motion_sensor_electrical %}
+      {{ (battery_entity != 'none' and battery_entity != '') or (electrical_entity != 'none' and electrical_entity != '') }}
 
 actions:
   - variables:
@@ -90,12 +94,18 @@ actions:
 
   - choose:
       - conditions:
-          - condition: or
+          - condition: and
             conditions:
               - condition: template
-                value_template: "{{ trigger.to_state.state == 'on' }}"
+                value_template: "{{ trigger.entity_id in [motion_sensor_battery, motion_sensor_electrical] }}"
               - condition: template
-                value_template: "{{ trigger.to_state.state == 'detect' }}"
+                value_template: "{{ trigger.entity_id != 'none' }}"
+              - condition: or
+                conditions:
+                  - condition: template
+                    value_template: "{{ trigger.to_state.state == 'on' }}"
+                  - condition: template
+                    value_template: "{{ trigger.to_state.state == 'detected' }}"
 
         sequence:
           - service: input_select.select_option
@@ -114,12 +124,18 @@ actions:
               hvac_mode: "cool"
 
       - conditions:
-          - condition: or
+          - condition: and
             conditions:
               - condition: template
-                value_template: "{{ trigger.to_state.state == 'off' }}"
+                value_template: "{{ trigger.entity_id in [motion_sensor_battery, motion_sensor_electrical] }}"
               - condition: template
-                value_template: "{{ trigger.to_state.state == 'clear' }}"
+                value_template: "{{ trigger.entity_id != 'none' }}"
+              - condition: or
+                conditions:
+                  - condition: template
+                    value_template: "{{ trigger.to_state.state == 'off' }}"
+                  - condition: template
+                    value_template: "{{ trigger.to_state.state == 'clear' }}"
 
         sequence:
           - delay:
