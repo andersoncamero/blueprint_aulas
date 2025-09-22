@@ -24,7 +24,6 @@ blueprint:
       name: Iluminación del Aula
       description: "Luz o grupo de luces que se controlarán automáticamente."
       selector:
-        target:
           entity:
             domain: light
 
