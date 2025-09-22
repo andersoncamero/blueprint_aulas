@@ -24,16 +24,18 @@ blueprint:
       name: Iluminación del Aula
       description: "Luz o grupo de luces que se controlarán automáticamente."
       selector:
-        entity:
-          domain: light
+        target:
+          entity:
+            domain: light
 
     target_climate:
       name: Termostato
       description: "Un termostato para ajustar la temperatura del aula."
       default: ""
       selector:
-        entity:
-          domain: climate
+        target:
+          entity:
+            domain: climate
 
     classroom_status:
       name: Estado del Aula (Helper)
@@ -86,26 +88,26 @@ action:
       status_entity: !input classroom_status
 
   - choose:
-      # ========== PRESENCIA DETECTADA ==========
+
       - conditions:
           - condition: template
             value_template: >
               {{ trigger.entity_id != '' and trigger.entity_id != 'unavailable' and
                  trigger.to_state.state in ['on', 'detected'] }}
         sequence:
-          # Actualizar estado a OCUPADA
+
           - service: input_select.select_option
             target:
               entity_id: !input classroom_status
             data:
               option: "OCUPADA"
 
-          # Encender luces
+
           - service: light.turn_on
             target:
               entity_id: !input target_light
 
-          # Activar climatización si existe y no está vacío
+
           - if:
               - condition: template
                 value_template: "{{ climate_entity != '' }}"
@@ -117,37 +119,37 @@ action:
                   temperature: !input target_temperature
                   hvac_mode: "cool"
 
-      # ========== AUSENCIA DETECTADA ==========
+
       - conditions:
           - condition: template
             value_template: >
               {{ trigger.entity_id != '' and trigger.entity_id != 'unavailable' and
                  trigger.to_state.state in ['off', 'clear'] }}
         sequence:
-          # Esperar el tiempo configurado
+
           - delay:
               seconds: !input off_delay
 
-          # Verificar que no haya movimiento durante el delay
+
           - condition: template
             value_template: >-
               {%- set battery_clear = motion_battery == '' or states(motion_battery) in ['off', 'clear', 'unavailable'] -%}
               {%- set electrical_clear = motion_electrical == '' or states(motion_electrical) in ['off', 'clear', 'unavailable'] -%}
               {{ battery_clear and electrical_clear }}
 
-          # Actualizar estado a LIBRE
+
           - service: input_select.select_option
             target:
               entity_id: !input classroom_status
             data:
               option: "LIBRE"
 
-          # Apagar luces
+
           - service: light.turn_off
             target:
               entity_id: !input target_light
 
-          # Apagar climatización si existe y no está vacío
+
           - if:
               - condition: template
                 value_template: "{{ climate_entity != '' }}"
