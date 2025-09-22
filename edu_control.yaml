@@ -94,20 +94,20 @@ actions:
             conditions:
               - condition: template
                 value_template: "{{ trigger.to_state.state == 'on' }}"
+              - condition: template
+                value_template: "{{ trigger.to_state.state == 'detect' }}"
+
         sequence:
-          - choose:
-              - conditions:
-                  - condition: template
-                    value_template: "{{ status_entity.startswith('input_select.') }}"
-                sequence:
-                  - service: input_select.set_option
-                    target:
-                      entity_id: !input classroom_status
-                    data: "OCUPADA"
+          - service: input_select.select_option
+            target:
+              entity_id: !input classroom_status
+            data:
+              option: "OCUPADA"
 
           - service: light.turn_on
             target:
               entity_id: !input target_light
+              
           - service: climate.set_hvac_mode
             target: !input target_climate
             data:
@@ -117,7 +117,9 @@ actions:
           - condition: or
             conditions:
               - condition: template
-                value_template: "{{ trigger.to_state.state in ['off', 'clear'] }}"
+                value_template: "{{ trigger.to_state.state == 'off' }}"
+              - condition: template
+                value_template: "{{ trigger.to_state.state == 'clear' }}"
 
         sequence:
           - delay:
@@ -129,15 +131,12 @@ actions:
               {%- set electrical_clear = motion_electrical == '' or states(motion_electrical) in ['off', 'clear'] -%}
               {{ battery_clear and electrical_clear }}
 
-          - choose:
-              - conditions:
-                  - condition: template
-                    value_template: "{{ status_entity.startswith('input_select.') }}"
-                sequence:
-                  - service: input_select.set_option
-                    target:
-                      entity_id: !input classroom_status
-                    data: "LIBRE"
+
+          - service: input_select.select_option
+            target:
+              entity_id: !input classroom_status
+            data:
+              option: "LIBRE"
 
           - service: light.turn_off
             target:
