@@ -1,6 +1,6 @@
 blueprint:
-  name: Aula inteligente 1
-  description: "Plugin diseñado para la automatización integral de salones de clase. Optimiza la gestión y operación del entorno educativo."
+  name: Aula inteligente 1 - Multi dispositivos
+  description: "Plugin diseñado para la automatización integral de salones de clase. Soporta múltiples luces y termostatos."
   domain: automation
   input:
     motion_sensor_battery:
@@ -20,17 +20,18 @@ blueprint:
         entity:
           domain: switch
 
-    target_light:
+    target_lights:
       name: Iluminación del Aula
-      description: "Luz o grupo de luces que se controlarán automáticamente."
+      description: "Luz o grupo de luces que se controlarán automáticamente. Puedes seleccionar múltiples."
       selector:
+        target:
           entity:
             domain: light
 
-    target_climate:
-      name: Termostato
-      description: "Un termostato para ajustar la temperatura del aula."
-      default: ""
+    target_climates:
+      name: Termostatos
+      description: "Termostatos del aula. Puedes seleccionar múltiples equipos de clima."
+      default: {}
       selector:
         target:
           entity:
@@ -83,7 +84,8 @@ action:
   - variables:
       motion_battery: !input motion_sensor_battery
       motion_electrical: !input motion_sensor_electrical
-      climate_entity: !input target_climate
+      climate_targets: !input target_climates
+      lights_targets: !input target_lights
       status_entity: !input classroom_status
 
   - choose:
@@ -103,17 +105,15 @@ action:
 
 
           - service: light.turn_on
-            target:
-              entity_id: !input target_light
+            target: !input target_lights
 
 
           - if:
               - condition: template
-                value_template: "{{ climate_entity != '' }}"
+                value_template: "{{ climate_targets != {} and climate_targets.entity_id is defined }}"
             then:
               - service: climate.set_temperature
-                target:
-                  entity_id: !input target_climate
+                target: !input target_climates
                 data:
                   temperature: !input target_temperature
                   hvac_mode: "cool"
@@ -145,16 +145,14 @@ action:
 
 
           - service: light.turn_off
-            target:
-              entity_id: !input target_light
+            target: !input target_lights
 
 
           - if:
               - condition: template
-                value_template: "{{ climate_entity != '' }}"
+                value_template: "{{ climate_targets != {} and climate_targets.entity_id is defined }}"
             then:
               - service: climate.set_hvac_mode
-                target:
-                  entity_id: !input target_climate
+                target: !input target_climates
                 data:
                   hvac_mode: "off"
