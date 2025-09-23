@@ -24,7 +24,7 @@ blueprint:
 
     target_lights:
       name: Iluminación del Aula
-      description: "Luces y switches que se controlarán automáticamente. Puedes seleccionar múltiples."
+      description: "Luz o grupo de luces que se controlarán automáticamente. Puedes seleccionar múltiples."
       selector:
         target:
           entity:
@@ -33,9 +33,9 @@ blueprint:
               - switch
 
     target_climates:
-      name: Termostatos (Opcional)
+      name: Termostatos
       description: "Termostatos del aula. Puedes seleccionar múltiples equipos de clima."
-      default: []
+      default: {}
       selector:
         target:
           entity:
