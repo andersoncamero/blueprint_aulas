@@ -3,22 +3,24 @@ blueprint:
   description: "Plugin diseñado para la automatización integral de salones de clase. Soporta múltiples luces y termostatos."
   domain: automation
   input:
-    motion_sensor_battery:
-      name: Sensor de Movimiento (Batería)
-      description: "Un sensor de movimiento (binary_sensor) para detectar la presencia en el aula."
-      default: ""
+    motion_sensors:
+      name: Sensor de Movimiento
+      description: "Un sensor de movimiento para detectar la presencia en el aula."
       selector:
-        entity:
-          domain: binary_sensor
-          device_class: motion
+        target:
+          entity:
+            domain:
+              - binary_sensor
+              - switch
 
-    motion_sensor_electrical:
-      name: Sensor de Movimiento (Eléctrico)
-      description: "Un interruptor que simula el sensor de movimiento eléctrico."
-      default: ""
+    opening_sensor:
+      name: Sensor de puerta
+      description: "Un sensor de puerta para detectar eventos de apertura/cierre."
       selector:
-        entity:
-          domain: switch
+        target:
+          entity:
+            domain: binary_sensor
+            device_class: door
 
     target_lights:
       name: Iluminación del Aula
@@ -74,18 +76,14 @@ max_exceeded: silent
 
 trigger:
   - platform: state
-    entity_id: !input motion_sensor_battery
-    id: "battery_sensor"
-  - platform: state
-    entity_id: !input motion_sensor_electrical
-    id: "electrical_sensor"
+    entity_id: !input motion_sensors
+    id: "motion_detected"
 
 condition: []
 
 action:
   - variables:
-      motion_battery: !input motion_sensor_battery
-      motion_electrical: !input motion_sensor_electrical
+      motion_sensors_target: !input motion_sensors
       climate_targets: !input target_climates
       lights_targets: !input target_lights
       status_entity: !input classroom_status
@@ -94,8 +92,7 @@ action:
       - conditions:
           - condition: template
             value_template: >
-              {{ trigger.entity_id != '' and trigger.entity_id != 'unavailable' and
-                 trigger.to_state.state in ['on', 'detected'] }}
+              {{ trigger.to_state.state in ['on', 'detected'] }}
         sequence:
           - service: input_select.select_option
             target:
@@ -115,17 +112,26 @@ action:
       - conditions:
           - condition: template
             value_template: >
-              {{ trigger.entity_id != '' and trigger.entity_id != 'unavailable' and
-                 trigger.to_state.state in ['off', 'clear'] }}
+              {{ trigger.to_state.state in ['off', 'clear'] }}
         sequence:
           - delay:
               seconds: !input off_delay
 
           - condition: template
             value_template: >-
-              {%- set battery_clear = motion_battery == '' or states(motion_battery) in ['off', 'clear', 'unavailable'] -%}
-              {%- set electrical_clear = motion_electrical == '' or states(motion_electrical) in ['off', 'clear', 'unavailable'] -%}
-              {{ battery_clear and electrical_clear }}
+              {%- set sensor_entities = motion_sensors_target.entity_id -%}
+              {%- if sensor_entities is string -%}
+                {%- set sensor_list = [sensor_entities] -%}
+              {%- else -%}
+                {%- set sensor_list = sensor_entities -%}
+              {%- endif -%}
+              {%- set all_clear = namespace(value=true) -%}
+              {%- for sensor in sensor_list -%}
+                {%- if states(sensor) not in ['off', 'clear', 'unavailable'] -%}
+                  {%- set all_clear.value = false -%}
+                {%- endif -%}
+              {%- endfor -%}
+              {{ all_clear.value }}
 
           - service: input_select.select_option
             target:
