@@ -106,15 +106,11 @@ action:
           - service: light.turn_on
             target: !input target_lights
 
-          - if:
-              - condition: template
-                value_template: "{{ climate_targets != {} and climate_targets.entity_id is defined }}"
-            then:
-              - service: climate.set_temperature
-                target: !input target_climates
-                data:
-                  temperature: !input target_temperature
-                  hvac_mode: "cool"
+          - service: climate.set_temperature
+            target: !input target_climates
+            data:
+              temperature: !input target_temperature
+              hvac_mode: "cool"
 
       - conditions:
           - condition: template
@@ -140,11 +136,7 @@ action:
           - service: light.turn_off
             target: !input target_lights
 
-          - if:
-              - condition: template
-                value_template: "{{ climate_targets != {} and climate_targets.entity_id is defined }}"
-            then:
-              - service: climate.set_hvac_mode
-                target: !input target_climates
-                data:
-                  hvac_mode: "off"
+          - service: climate.set_hvac_mode
+            target: !input target_climates
+            data:
+              hvac_mode: "off"
