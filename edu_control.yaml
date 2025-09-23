@@ -153,6 +153,6 @@ action:
 
 
           - service: climate.set_hvac_mode
+            target: !input target_climates
             data:
-              entity_id: !input target_climates
               hvac_mode: "off"
