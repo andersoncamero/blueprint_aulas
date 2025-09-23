@@ -14,7 +14,7 @@ blueprint:
           multiple: true
 
     opening_sensor:
-      name: Sensor de puerta
+      name: Sensor de puerta (Opcional)
       description: "Un sensor de puerta para detectar eventos de apertura/cierre."
       default: ""
       selector:
@@ -90,20 +90,23 @@ action:
       status_entity: !input classroom_status
 
   - choose:
+
       - conditions:
           - condition: template
             value_template: >
               {{ trigger.to_state.state in ['on', 'detected'] }}
         sequence:
+
           - service: input_select.select_option
             target:
               entity_id: !input classroom_status
             data:
               option: "OCUPADA"
 
+
           - service: homeassistant.turn_on
-            data:
-              entity_id: !input target_lights
+            target: !input target_lights
+
 
           - service: climate.set_temperature
             data:
@@ -116,8 +119,10 @@ action:
             value_template: >
               {{ trigger.to_state.state in ['off', 'clear'] }}
         sequence:
+
           - delay:
               seconds: !input off_delay
+
 
           - condition: template
             value_template: >-
@@ -135,15 +140,17 @@ action:
               {%- endfor -%}
               {{ all_clear.value }}
 
+
           - service: input_select.select_option
             target:
               entity_id: !input classroom_status
             data:
               option: "LIBRE"
 
+
           - service: homeassistant.turn_off
-            data:
-              entity_id: !input target_lights
+            target: !input target_lights
+
 
           - service: climate.set_hvac_mode
             data:
