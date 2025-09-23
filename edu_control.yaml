@@ -103,7 +103,7 @@ action:
             data:
               option: "OCUPADA"
 
-          - service: light.turn_on
+          - service: homeassistant.turn_on
             target: !input target_lights
 
           - service: climate.set_temperature
@@ -133,7 +133,7 @@ action:
             data:
               option: "LIBRE"
 
-          - service: light.turn_off
+          - service: homeassistant.turn_off
             target: !input target_lights
 
           - service: climate.set_hvac_mode
