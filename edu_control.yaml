@@ -109,8 +109,8 @@ action:
 
 
           - service: climate.set_temperature
+            target: !input target_climates
             data:
-              entity_id: !input target_climates
               temperature: !input target_temperature
               hvac_mode: "cool"
 
