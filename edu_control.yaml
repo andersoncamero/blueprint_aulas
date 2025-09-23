@@ -26,7 +26,9 @@ blueprint:
       selector:
         target:
           entity:
-            domain: light
+            domain:
+              - light
+              - switch
 
     target_climates:
       name: Termostatos
@@ -89,24 +91,20 @@ action:
       status_entity: !input classroom_status
 
   - choose:
-
       - conditions:
           - condition: template
             value_template: >
               {{ trigger.entity_id != '' and trigger.entity_id != 'unavailable' and
                  trigger.to_state.state in ['on', 'detected'] }}
         sequence:
-
           - service: input_select.select_option
             target:
               entity_id: !input classroom_status
             data:
               option: "OCUPADA"
 
-
           - service: light.turn_on
             target: !input target_lights
-
 
           - if:
               - condition: template
@@ -118,17 +116,14 @@ action:
                   temperature: !input target_temperature
                   hvac_mode: "cool"
 
-
       - conditions:
           - condition: template
             value_template: >
               {{ trigger.entity_id != '' and trigger.entity_id != 'unavailable' and
                  trigger.to_state.state in ['off', 'clear'] }}
         sequence:
-
           - delay:
               seconds: !input off_delay
-
 
           - condition: template
             value_template: >-
@@ -136,17 +131,14 @@ action:
               {%- set electrical_clear = motion_electrical == '' or states(motion_electrical) in ['off', 'clear', 'unavailable'] -%}
               {{ battery_clear and electrical_clear }}
 
-
           - service: input_select.select_option
             target:
               entity_id: !input classroom_status
             data:
               option: "LIBRE"
 
-
           - service: light.turn_off
             target: !input target_lights
-
 
           - if:
               - condition: template
