@@ -7,40 +7,39 @@ blueprint:
       name: Sensores de Movimiento
       description: "Sensores de movimiento para detectar la presencia en el aula. Pueden ser binary_sensor o switch."
       selector:
-        target:
-          entity:
-            domain:
-              - binary_sensor
-              - switch
+        entity:
+          domain:
+            - binary_sensor
+            - switch
+          multiple: true
 
     opening_sensor:
-      name: Sensor de puerta
+      name: Sensor de puerta 
       description: "Un sensor de puerta para detectar eventos de apertura/cierre."
-      default: {}
+      default: ""
       selector:
-        target:
-          entity:
-            domain: binary_sensor
-            device_class: door
+        entity:
+          domain: binary_sensor
+          device_class: door
 
     target_lights:
       name: Iluminación del Aula
       description: "Luces y switches que se controlarán automáticamente. Puedes seleccionar múltiples."
       selector:
-        target:
-          entity:
-            domain:
-              - light
-              - switch
+        entity:
+          domain:
+            - light
+            - switch
+          multiple: true
 
     target_climates:
-      name: Termostatos 
+      name: Termostatos (Opcional)
       description: "Termostatos del aula. Puedes seleccionar múltiples equipos de clima."
-      default: {}
+      default: []
       selector:
-        target:
-          entity:
-            domain: climate
+        entity:
+          domain: climate
+          multiple: true
 
     classroom_status:
       name: Estado del Aula (Helper)
@@ -79,18 +78,15 @@ trigger:
   - platform: state
     entity_id: !input motion_sensors
     id: "motion_detected"
-  - platform: state
-    entity_id: !input opening_sensor
-    id: "door_opened"
 
 condition: []
 
 action:
   - variables:
-      motion_sensors_target: !input motion_sensors
-      opening_sensor_target: !input opening_sensor
-      climate_targets: !input target_climates
-      lights_targets: !input target_lights
+      motion_sensors_list: !input motion_sensors
+      opening_sensor_entity: !input opening_sensor
+      climate_list: !input target_climates
+      lights_list: !input target_lights
       status_entity: !input classroom_status
 
   - choose:
@@ -109,15 +105,15 @@ action:
 
 
           - service: homeassistant.turn_on
-            target: !input target_lights
+            data:
+              entity_id: !input target_lights
 
 
           - service: climate.set_temperature
-            target: !input target_climates
             data:
+              entity_id: !input target_climates
               temperature: !input target_temperature
               hvac_mode: "cool"
-
 
       - conditions:
           - condition: template
@@ -128,9 +124,10 @@ action:
           - delay:
               seconds: !input off_delay
 
+
           - condition: template
             value_template: >-
-              {%- set motion_entities = motion_sensors_target.entity_id -%}
+              {%- set motion_entities = motion_sensors_list -%}
               {%- if motion_entities is string -%}
                 {%- set motion_list = [motion_entities] -%}
               {%- else -%}
@@ -153,10 +150,11 @@ action:
 
 
           - service: homeassistant.turn_off
-            target: !input target_lights
+            data:
+              entity_id: !input target_lights
 
 
           - service: climate.set_hvac_mode
-            target: !input target_climates
             data:
+              entity_id: !input target_climates
               hvac_mode: "off"
