@@ -4,8 +4,8 @@ blueprint:
   domain: automation
   input:
     motion_sensors:
-      name: Sensor de Movimiento
-      description: "Un sensor de movimiento para detectar la presencia en el aula."
+      name: Sensores de Movimiento
+      description: "Sensores de movimiento para detectar la presencia en el aula. Pueden ser binary_sensor o switch."
       selector:
         target:
           entity:
@@ -16,6 +16,7 @@ blueprint:
     opening_sensor:
       name: Sensor de puerta
       description: "Un sensor de puerta para detectar eventos de apertura/cierre."
+      default: {}
       selector:
         target:
           entity:
@@ -24,7 +25,7 @@ blueprint:
 
     target_lights:
       name: Iluminación del Aula
-      description: "Luz o grupo de luces que se controlarán automáticamente. Puedes seleccionar múltiples."
+      description: "Luces y switches que se controlarán automáticamente. Puedes seleccionar múltiples."
       selector:
         target:
           entity:
@@ -33,7 +34,7 @@ blueprint:
               - switch
 
     target_climates:
-      name: Termostatos
+      name: Termostatos 
       description: "Termostatos del aula. Puedes seleccionar múltiples equipos de clima."
       default: {}
       selector:
@@ -78,30 +79,38 @@ trigger:
   - platform: state
     entity_id: !input motion_sensors
     id: "motion_detected"
+  - platform: state
+    entity_id: !input opening_sensor
+    id: "door_opened"
 
 condition: []
 
 action:
   - variables:
       motion_sensors_target: !input motion_sensors
+      opening_sensor_target: !input opening_sensor
       climate_targets: !input target_climates
       lights_targets: !input target_lights
       status_entity: !input classroom_status
 
   - choose:
+
       - conditions:
           - condition: template
             value_template: >
               {{ trigger.to_state.state in ['on', 'detected'] }}
         sequence:
+
           - service: input_select.select_option
             target:
               entity_id: !input classroom_status
             data:
               option: "OCUPADA"
 
+
           - service: homeassistant.turn_on
             target: !input target_lights
+
 
           - service: climate.set_temperature
             target: !input target_climates
@@ -109,29 +118,32 @@ action:
               temperature: !input target_temperature
               hvac_mode: "cool"
 
+
       - conditions:
           - condition: template
             value_template: >
               {{ trigger.to_state.state in ['off', 'clear'] }}
         sequence:
+
           - delay:
               seconds: !input off_delay
 
           - condition: template
             value_template: >-
-              {%- set sensor_entities = motion_sensors_target.entity_id -%}
-              {%- if sensor_entities is string -%}
-                {%- set sensor_list = [sensor_entities] -%}
+              {%- set motion_entities = motion_sensors_target.entity_id -%}
+              {%- if motion_entities is string -%}
+                {%- set motion_list = [motion_entities] -%}
               {%- else -%}
-                {%- set sensor_list = sensor_entities -%}
+                {%- set motion_list = motion_entities -%}
               {%- endif -%}
               {%- set all_clear = namespace(value=true) -%}
-              {%- for sensor in sensor_list -%}
+              {%- for sensor in motion_list -%}
                 {%- if states(sensor) not in ['off', 'clear', 'unavailable'] -%}
                   {%- set all_clear.value = false -%}
                 {%- endif -%}
               {%- endfor -%}
               {{ all_clear.value }}
+
 
           - service: input_select.select_option
             target:
@@ -139,8 +151,10 @@ action:
             data:
               option: "LIBRE"
 
+
           - service: homeassistant.turn_off
             target: !input target_lights
+
 
           - service: climate.set_hvac_mode
             target: !input target_climates
