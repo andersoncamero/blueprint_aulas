@@ -39,7 +39,7 @@ blueprint:
       selector:
         entity:
           domain: climate
-          multiple: true
+        multiple: true
 
     classroom_status:
       name: Estado del Aula (Helper)
