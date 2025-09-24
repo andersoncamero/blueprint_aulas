@@ -78,6 +78,10 @@ trigger:
   - platform: state
     entity_id: !input motion_sensors
     id: "motion_detected"
+  - platform: state
+    entity_id: !input opening_sensor
+    to: "on"
+    id: "door_opened"
 
 condition: []
 
@@ -90,6 +94,62 @@ action:
       status_entity: !input classroom_status
 
   - choose:
+
+      - conditions:
+          - condition: trigger
+            id: "door_opened"
+        sequence:
+          - service: input_select.select_option
+            target:
+              entity_id: !input classroom_status
+            data:
+              option: "OCUPADA"
+
+          - service: homeassistant.turn_on
+            target: !input target_lights
+
+          - service: climate.set_temperature
+            target: !input target_climates
+            data:
+              temperature: !input target_temperature
+              hvac_mode: "cool"
+
+
+          - delay:
+              seconds: !input off_delay
+
+
+          - condition: template
+            value_template: >-
+              {%- set motion_entities = motion_sensors_list -%}
+              {%- if motion_entities is string -%}
+                {%- set motion_list = [motion_entities] -%}
+              {%- else -%}
+                {%- set motion_list = motion_entities -%}
+              {%- endif -%}
+              {%- set all_clear = namespace(value=true) -%}
+              {%- for sensor in motion_list -%}
+                {%- if states(sensor) not in ['off', 'clear', 'unavailable'] -%}
+                  {%- set all_clear.value = false -%}
+                {%- endif -%}
+              {%- endfor -%}
+              {{ all_clear.value }}
+
+
+          - service: input_select.select_option
+            target:
+              entity_id: !input classroom_status
+            data:
+              option: "LIBRE"
+
+          - service: homeassistant.turn_off
+            target: !input target_lights
+
+          - service: climate.set_hvac_mode
+            target: !input target_climates
+            data:
+              hvac_mode: "off"
+
 
       - conditions:
           - condition: template
