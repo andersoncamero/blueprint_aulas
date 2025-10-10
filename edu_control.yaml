@@ -107,11 +107,11 @@ action:
           - condition: trigger
             id: "door_opened"
           - condition: state
-            entity_id: !input modo_auto
-            state: "on"
-          - condition: state
             entity_id: !input classroom_status
             state: "LIBRE"
+          - condition: state
+            entity_id: !input modo_auto
+            state: "on"
         sequence:
           - service: input_select.select_option
             target:
