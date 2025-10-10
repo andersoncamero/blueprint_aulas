@@ -96,8 +96,7 @@ trigger:
     id: "motion_cleared"
   - platform: state
     entity_id: !input opening_sensor
-    to: "on"
-    id: "door_opened"
+    id: "door_state_changed"
 
 condition: []
 
@@ -111,10 +110,10 @@ action:
 
   - choose:
 
-      # Condición para cuando se abre la puerta
+      # Condición para cuando cambia el estado de la puerta
       - conditions:
           - condition: trigger
-            id: "door_opened"
+            id: "door_state_changed"
           - condition: state
             entity_id: !input classroom_status
             state: "LIBRE"
