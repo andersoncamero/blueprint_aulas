@@ -84,7 +84,16 @@ max_exceeded: silent
 trigger:
   - platform: state
     entity_id: !input motion_sensors
+    to: 
+      - "on"
+      - "detected"
     id: "motion_detected"
+  - platform: state
+    entity_id: !input motion_sensors
+    to:
+      - "off" 
+      - "clear"
+    id: "motion_cleared"
   - platform: state
     entity_id: !input opening_sensor
     to: "on"
@@ -167,9 +176,8 @@ action:
 
       # Condición para cuando se detecta movimiento
       - conditions:
-          - condition: template
-            value_template: >
-              {{ trigger.to_state.state in ['on', 'detected'] }}
+          - condition: trigger
+            id: "motion_detected"
           - condition: state
             entity_id: !input modo_auto
             state: "on"
@@ -194,9 +202,8 @@ action:
 
       # Condición para cuando cesa el movimiento
       - conditions:
-          - condition: template
-            value_template: >
-              {{ trigger.to_state.state in ['off', 'clear'] }}
+          - condition: trigger
+            id: "motion_cleared"
           - condition: state
             entity_id: !input modo_auto
             state: "on"
