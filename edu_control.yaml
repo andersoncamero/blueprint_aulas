@@ -109,6 +109,9 @@ action:
           - condition: state
             entity_id: !input modo_auto
             state: "on"
+          - condition: state
+            entity_id: !input classroom_status
+            state: "LIBRE"
         sequence:
           - service: input_select.select_option
             target:
