@@ -171,7 +171,7 @@ action:
             data:
               hvac_mode: "off"
       
-      - condition:
+      - conditions:
           - condition: trigger
             id: "door_state_changed"
         sequence:
@@ -207,7 +207,6 @@ action:
             target: !input target_climates
             data:
               hvac_mode: "off"
-
 
       # Condición para cuando se detecta movimiento
       - conditions:
