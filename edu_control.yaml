@@ -24,10 +24,10 @@ blueprint:
 
     modo_auto:
       name: Modo Automático
-      description: "Si está activado, la automatización funcionará. Si está desactivado, el aula permanecerá en estado manual."
-      default: true
+      description: "Helper input_boolean que controla si la automatización está activa. Si está ON, funciona automáticamente; si está OFF, modo manual."
       selector:
-        boolean: {}
+        entity:
+          domain: input_boolean
 
     target_lights:
       name: Iluminación del Aula
@@ -89,10 +89,6 @@ trigger:
     entity_id: !input opening_sensor
     to: "on"
     id: "door_opened"
-  - platform: state
-    entity_id: !input modo_auto
-    to: true
-    id: "modo_auto_on"
 
 condition: []
 
@@ -106,11 +102,13 @@ action:
 
   - choose:
 
+      # Condición para cuando se abre la puerta
       - conditions:
           - condition: trigger
             id: "door_opened"
-          - condition: trigger
-            id: "modo_auto_on"
+          - condition: state
+            entity_id: !input modo_auto
+            state: "on"
         sequence:
           - service: input_select.select_option
             target:
@@ -164,10 +162,14 @@ action:
               hvac_mode: "off"
 
 
+      # Condición para cuando se detecta movimiento
       - conditions:
           - condition: template
             value_template: >
               {{ trigger.to_state.state in ['on', 'detected'] }}
+          - condition: state
+            entity_id: !input modo_auto
+            state: "on"
         sequence:
 
           - service: input_select.select_option
@@ -187,10 +189,14 @@ action:
               temperature: !input target_temperature
               hvac_mode: "cool"
 
+      # Condición para cuando cesa el movimiento
       - conditions:
           - condition: template
             value_template: >
               {{ trigger.to_state.state in ['off', 'clear'] }}
+          - condition: state
+            entity_id: !input modo_auto
+            state: "on"
         sequence:
 
           - delay:
