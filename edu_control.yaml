@@ -1,5 +1,5 @@
 blueprint:
-  name: Aula inteligente 1 - Multi dispositivos
+  name: Aula inteligente - Multi dispositivos
   description: "Plugin diseñado para la automatización integral de salones de clase. Soporta múltiples luces y termostatos."
   domain: automation
   input:
@@ -50,7 +50,7 @@ blueprint:
 
     classroom_status:
       name: Estado del Aula (Helper)
-      description: "Helper input_select que mostrará LIBRE u OCUPADA."
+      description: "Helper input_select que mostrará LIBRE u OCUPADO."
       selector:
         entity:
           domain: input_select
@@ -110,7 +110,7 @@ action:
 
   - choose:
 
-      # Condición para cuando cambia el estado de la puerta
+
       - conditions:
           - condition: trigger
             id: "door_state_changed"
@@ -125,7 +125,7 @@ action:
             target:
               entity_id: !input classroom_status
             data:
-              option: "OCUPADA"
+              option: "OCUPADO"
 
           - service: homeassistant.turn_on
             target: !input target_lights
@@ -221,7 +221,7 @@ action:
             target:
               entity_id: !input classroom_status
             data:
-              option: "OCUPADA"
+              option: "OCUPADO"
 
 
           - service: homeassistant.turn_on
