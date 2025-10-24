@@ -86,7 +86,7 @@ blueprint:
     countdown_indicator:
       name: Indicador de Cuenta Regresiva (Opcional)
       description: "Helper input_number que mostrará el tiempo restante durante los delays. Déjalo vacío si no quieres indicador visual."
-      default: ""
+      default: !input delay_between_checks
       selector:
         entity:
           domain: input_number
@@ -128,6 +128,7 @@ action:
       lights_list: !input target_lights
       status_entity: !input classroom_status
       countdown_entity: !input countdown_indicator
+      delay_between_checks: !input delay_between_checks
 
   - choose:
       # Condición para cuando se abre la puerta (cerrado → abierto)
