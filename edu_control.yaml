@@ -78,25 +78,37 @@ blueprint:
           mode: slider
           step: 30
 
+    delay_between_checks:
+      name: Intervalo fijo entre comprobaciones
+      description: "Temporizador fijo entre comprobaciones (segundos). No configurable desde la interfaz."
+      default: 300
+
 mode: restart
 max_exceeded: silent
 
 trigger:
   - platform: state
     entity_id: !input motion_sensors
-    to: 
+    to:
       - "on"
       - "detected"
     id: "motion_detected"
   - platform: state
     entity_id: !input motion_sensors
     to:
-      - "off" 
+      - "off"
       - "clear"
     id: "motion_cleared"
   - platform: state
     entity_id: !input opening_sensor
-    id: "door_state_changed"
+    from: "off"
+    to: "on"
+    id: "door_opened"
+  - platform: state
+    entity_id: !input opening_sensor
+    from: "on"
+    to: "off"
+    id: "door_closed"
 
 condition: []
 
@@ -109,11 +121,10 @@ action:
       status_entity: !input classroom_status
 
   - choose:
-
-
+      # Condición para cuando se abre la puerta (cerrado → abierto)
       - conditions:
           - condition: trigger
-            id: "door_state_changed"
+            id: "door_opened"
           - condition: state
             entity_id: !input classroom_status
             state: "LIBRE"
@@ -125,10 +136,7 @@ action:
             target:
               entity_id: !input classroom_status
             data:
-              option: "OCUPADO"
-
-          - service: homeassistant.turn_on
-            target: !input target_lights
+              option: "PUERTA_ABIERTA"
 
           - service: climate.set_temperature
             target: !input target_climates
@@ -136,44 +144,30 @@ action:
               temperature: !input target_temperature
               hvac_mode: "cool"
 
+          - delay:
+              seconds: !input delay_between_checks
+
+          - service: homeassistant.turn_on
+            target: !input target_lights
 
           - delay:
               seconds: !input off_delay
-
-          - condition: template
-            value_template: >-
-              {%- set motion_entities = motion_sensors_list -%}
-              {%- if motion_entities is string -%}
-                {%- set motion_list = [motion_entities] -%}
-              {%- else -%}
-                {%- set motion_list = motion_entities -%}
-              {%- endif -%}
-              {%- set all_clear = namespace(value=true) -%}
-              {%- for sensor in motion_list -%}
-                {%- if states(sensor) not in ['off', 'clear', 'unavailable'] -%}
-                  {%- set all_clear.value = false -%}
-                {%- endif -%}
-              {%- endfor -%}
-              {{ all_clear.value }}
-
-
-          - service: input_select.select_option
-            target:
-              entity_id: !input classroom_status
-            data:
-              option: "LIBRE"
-
-          - service: homeassistant.turn_off
-            target: !input target_lights
 
           - service: climate.set_hvac_mode
             target: !input target_climates
             data:
               hvac_mode: "off"
-      
+
+          - delay:
+              seconds: !input delay_between_checks
+
+          - service: homeassistant.turn_off
+            target: !input target_lights
+
+      # Condición para cuando se cierra la puerta (abierto → cerrado)
       - conditions:
           - condition: trigger
-            id: "door_state_changed"
+            id: "door_closed"
         sequence:
           - delay:
               seconds: !input off_delay
@@ -193,20 +187,22 @@ action:
               {%- endfor -%}
               {{ all_clear.value }}
 
-
           - service: input_select.select_option
             target:
               entity_id: !input classroom_status
             data:
               option: "LIBRE"
 
-          - service: homeassistant.turn_off
-            target: !input target_lights
-
           - service: climate.set_hvac_mode
             target: !input target_climates
             data:
               hvac_mode: "off"
+
+          - delay:
+              seconds: !input delay_between_checks
+
+          - service: homeassistant.turn_off
+            target: !input target_lights
 
       # Condición para cuando se detecta movimiento
       - conditions:
@@ -215,18 +211,13 @@ action:
           - condition: state
             entity_id: !input modo_auto
             state: "on"
-        sequence:
 
+        sequence:
           - service: input_select.select_option
             target:
               entity_id: !input classroom_status
             data:
               option: "OCUPADO"
-
-
-          - service: homeassistant.turn_on
-            target: !input target_lights
-
 
           - service: climate.set_temperature
             target: !input target_climates
@@ -234,18 +225,20 @@ action:
               temperature: !input target_temperature
               hvac_mode: "cool"
 
+          - delay:
+              seconds: !input delay_between_checks
+
+          - service: homeassistant.turn_on
+            target: !input target_lights
+
       # Condición para cuando cesa el movimiento
       - conditions:
           - condition: trigger
             id: "motion_cleared"
-          - condition: state
-            entity_id: !input modo_auto
-            state: "on"
-        sequence:
 
+        sequence:
           - delay:
               seconds: !input off_delay
-
 
           - condition: template
             value_template: >-
@@ -263,19 +256,21 @@ action:
               {%- endfor -%}
               {{ all_clear.value }}
 
-
           - service: input_select.select_option
             target:
               entity_id: !input classroom_status
             data:
               option: "LIBRE"
 
+          - service: climate.set_hvac_mode
+            target: !input target_climates
+            data:
+              hvac_mode: "off"
+
+          - delay:
+              seconds: !input delay_between_checks
 
           - service: homeassistant.turn_off
             target: !input target_lights
 
 
-          - service: climate.set_hvac_mode
-            target: !input target_climates
-            data:
-              hvac_mode: "off"
