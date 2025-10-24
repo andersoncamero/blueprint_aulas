@@ -134,6 +134,8 @@ action:
       countdown_entity: !input countdown_indicator
       delay_between_checks: !input delay_between_checks
       scanning_time: !input off_delay
+      is_blueprint_change: >-
+        {{ trigger.id in ['door_opened', 'door_closed', 'motion_detected', 'motion_cleared'] }}
 
   - choose:
       # Condición para cuando se abre la puerta (cerrado → abierto)
@@ -380,9 +382,7 @@ action:
           - condition: trigger
             id: "manual_libre_selected"
           - condition: template
-            value_template: >-
-              {{ trigger.to_state.context.user_id is not none and 
-                 trigger.to_state.context.parent_id is none }}
+            value_template: "{{ not is_blueprint_change }}"
         sequence:
           - service: climate.set_hvac_mode
             target: !input target_climates
