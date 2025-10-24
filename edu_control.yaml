@@ -270,16 +270,6 @@ action:
             data:
               option: "LIBRE"
 
-          - service: climate.set_hvac_mode
-            target: !input target_climates
-            data:
-              hvac_mode: "off"
-
-          - delay:
-              seconds: !input delay_between_checks
-
-          - service: homeassistant.turn_off
-            target: !input target_lights
 
       # Condición para cuando se detecta movimiento
       - conditions:
@@ -366,16 +356,6 @@ action:
             data:
               option: "LIBRE"
 
-          - service: climate.set_hvac_mode
-            target: !input target_climates
-            data:
-              hvac_mode: "off"
-
-          - delay:
-              seconds: !input delay_between_checks
-
-          - service: homeassistant.turn_off
-            target: !input target_lights
       
       # Condición para cuando se selecciona manualmente LIBRE
       - conditions:
@@ -388,6 +368,10 @@ action:
             target: !input target_climates
             data:
               hvac_mode: "off"
+
+          - delay:
+              seconds: !input delay_between_checks
+
           - service: homeassistant.turn_off
             target: !input target_lights          
 
