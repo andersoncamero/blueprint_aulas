@@ -81,7 +81,7 @@ blueprint:
     delay_between_checks:
       name: Intervalo fijo entre comprobaciones
       description: "Temporizador fijo entre comprobaciones (segundos). No configurable desde la interfaz."
-      default: 100
+      default: 10
 
     countdown_indicator:
       name: Indicador de Cuenta Regresiva (Opcional)
@@ -117,6 +117,10 @@ trigger:
     from: "on"
     to: "off"
     id: "door_closed"
+  - platform: state
+    entity_id: !input classroom_status
+    to: "LIBRE"
+    id: "manual_libre_selected"
 
 condition: []
 
@@ -206,7 +210,7 @@ action:
             target:
               entity_id: !input classroom_status
             data:
-              option: "OCUPADO"
+              option: "SCAN"
 
           - service: climate.set_temperature
             target: !input target_climates
@@ -310,6 +314,11 @@ action:
             id: "motion_cleared"
 
         sequence:
+          - service: input_select.select_option
+            target:
+              entity_id: !input classroom_status
+            data:
+              option: "SCAN"
           - if:
               - condition: template
                 value_template: "{{ countdown_entity != '' and countdown_entity is not none }}"
@@ -365,5 +374,19 @@ action:
 
           - service: homeassistant.turn_off
             target: !input target_lights
-
+      
+      # Condición para cuando se selecciona manualmente LIBRE
+      - conditions:
+          - condition: trigger
+            id: "manual_libre_selected"
+          - condition: template
+            value_template: >-
+              {{ trigger.from_state and trigger.from_state.context.user_id is not none }}
+        sequence:
+          - service: climate.set_hvac_mode
+            target: !input target_climates
+            data:
+              hvac_mode: "off"
+          - service: homeassistant.turn_off
+            target: !input target_lights          
 
