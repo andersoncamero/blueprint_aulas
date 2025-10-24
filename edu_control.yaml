@@ -169,6 +169,25 @@ action:
           - condition: trigger
             id: "door_closed"
         sequence:
+
+          - service: input_select.select_option
+            target:
+              entity_id: !input classroom_status
+            data:
+              option: "OCUPADO"
+
+          - service: climate.set_temperature
+            target: !input target_climates
+            data:
+              temperature: !input target_temperature
+              hvac_mode: "cool"
+
+          - delay:
+              seconds: !input delay_between_checks
+
+          - service: homeassistant.turn_on
+            target: !input target_lights
+
           - delay:
               seconds: !input off_delay
           - condition: template
