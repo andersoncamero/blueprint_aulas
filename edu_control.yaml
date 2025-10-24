@@ -189,8 +189,29 @@ action:
             data:
               hvac_mode: "off"
 
-          - delay:
-              seconds: !input delay_between_checks
+          # Cuenta regresiva visual para delay_between_checks
+          - if:
+              - condition: template
+                value_template: "{{ countdown_entity != '' and countdown_entity is not none }}"
+            then:
+              - repeat:
+                  count: "{{ (delay_between_checks / 10) | int }}"
+                  sequence:
+                    - service: input_number.set_value
+                      target:
+                        entity_id: "{{ countdown_entity }}"
+                      data:
+                        value: "{{ delay_between_checks - (repeat.index * 10) }}"
+                    - delay:
+                        seconds: 10
+              - service: input_number.set_value
+                target:
+                  entity_id: "{{ countdown_entity }}"
+                data:
+                  value: 0
+            else:
+              - delay:
+                  seconds: !input delay_between_checks
 
           - service: homeassistant.turn_off
             target: !input target_lights
@@ -213,8 +234,29 @@ action:
               temperature: !input target_temperature
               hvac_mode: "cool"
 
-          - delay:
-              seconds: !input delay_between_checks
+          # Cuenta regresiva visual para delay_between_checks
+          - if:
+              - condition: template
+                value_template: "{{ countdown_entity != '' and countdown_entity is not none }}"
+            then:
+              - repeat:
+                  count: "{{ (delay_between_checks / 10) | int }}"
+                  sequence:
+                    - service: input_number.set_value
+                      target:
+                        entity_id: "{{ countdown_entity }}"
+                      data:
+                        value: "{{ delay_between_checks - (repeat.index * 10) }}"
+                    - delay:
+                        seconds: 10
+              - service: input_number.set_value
+                target:
+                  entity_id: "{{ countdown_entity }}"
+                data:
+                  value: 0
+            else:
+              - delay:
+                  seconds: !input delay_between_checks
 
           - service: homeassistant.turn_on
             target: !input target_lights
@@ -248,8 +290,29 @@ action:
             data:
               hvac_mode: "off"
 
-          - delay:
-              seconds: !input delay_between_checks
+          # Cuenta regresiva visual para delay_between_checks
+          - if:
+              - condition: template
+                value_template: "{{ countdown_entity != '' and countdown_entity is not none }}"
+            then:
+              - repeat:
+                  count: "{{ (delay_between_checks / 10) | int }}"
+                  sequence:
+                    - service: input_number.set_value
+                      target:
+                        entity_id: "{{ countdown_entity }}"
+                      data:
+                        value: "{{ delay_between_checks - (repeat.index * 10) }}"
+                    - delay:
+                        seconds: 10
+              - service: input_number.set_value
+                target:
+                  entity_id: "{{ countdown_entity }}"
+                data:
+                  value: 0
+            else:
+              - delay:
+                  seconds: !input delay_between_checks
 
           - service: homeassistant.turn_off
             target: !input target_lights
@@ -275,8 +338,29 @@ action:
               temperature: !input target_temperature
               hvac_mode: "cool"
 
-          - delay:
-              seconds: !input delay_between_checks
+          # Cuenta regresiva visual para delay_between_checks
+          - if:
+              - condition: template
+                value_template: "{{ countdown_entity != '' and countdown_entity is not none }}"
+            then:
+              - repeat:
+                  count: "{{ (delay_between_checks / 10) | int }}"
+                  sequence:
+                    - service: input_number.set_value
+                      target:
+                        entity_id: "{{ countdown_entity }}"
+                      data:
+                        value: "{{ delay_between_checks - (repeat.index * 10) }}"
+                    - delay:
+                        seconds: 10
+              - service: input_number.set_value
+                target:
+                  entity_id: "{{ countdown_entity }}"
+                data:
+                  value: 0
+            else:
+              - delay:
+                  seconds: !input delay_between_checks
 
           - service: homeassistant.turn_on
             target: !input target_lights
@@ -317,8 +401,29 @@ action:
             data:
               hvac_mode: "off"
 
-          - delay:
-              seconds: !input delay_between_checks
+          # Cuenta regresiva visual para delay_between_checks
+          - if:
+              - condition: template
+                value_template: "{{ countdown_entity != '' and countdown_entity is not none }}"
+            then:
+              - repeat:
+                  count: "{{ (delay_between_checks / 10) | int }}"
+                  sequence:
+                    - service: input_number.set_value
+                      target:
+                        entity_id: "{{ countdown_entity }}"
+                      data:
+                        value: "{{ delay_between_checks - (repeat.index * 10) }}"
+                    - delay:
+                        seconds: 10
+              - service: input_number.set_value
+                target:
+                  entity_id: "{{ countdown_entity }}"
+                data:
+                  value: 0
+            else:
+              - delay:
+                  seconds: !input delay_between_checks
 
           - service: homeassistant.turn_off
             target: !input target_lights
