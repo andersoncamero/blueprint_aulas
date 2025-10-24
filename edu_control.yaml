@@ -129,6 +129,7 @@ action:
       status_entity: !input classroom_status
       countdown_entity: !input countdown_indicator
       delay_between_checks: !input delay_between_checks
+      scanning_time: !input off_delay
 
   - choose:
       # Condición para cuando se abre la puerta (cerrado → abierto)
@@ -181,8 +182,29 @@ action:
           - service: homeassistant.turn_on
             target: !input target_lights
 
-          - delay:
-              seconds: !input off_delay
+          - if:
+              - condition: template
+                value_template: "{{ countdown_entity != '' and countdown_entity is not none }}"
+            then:
+              - repeat:
+                  count: "{{ (scanning_time / 10) | int }}"
+                  sequence:
+                    - service: input_number.set_value
+                      target:
+                        entity_id: "{{ countdown_entity }}"
+                      data:
+                        value: "{{ scanning_time - (repeat.index * 10) }}"
+                    - delay:
+                        seconds: 10
+              - service: input_number.set_value
+                target:
+                  entity_id: "{{ countdown_entity }}"
+                data:
+                  value: 0
+            else:
+              - delay:
+                  seconds: !input off_delay
+              
 
           - service: climate.set_hvac_mode
             target: !input target_climates
