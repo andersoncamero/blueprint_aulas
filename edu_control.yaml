@@ -189,7 +189,6 @@ action:
             else:
               - delay:
                   seconds: !input off_delay
-              
 
           - service: climate.set_hvac_mode
             target: !input target_climates
@@ -207,7 +206,6 @@ action:
           - condition: trigger
             id: "door_closed"
         sequence:
-
           - service: input_select.select_option
             target:
               entity_id: !input classroom_status
@@ -269,7 +267,6 @@ action:
               entity_id: !input classroom_status
             data:
               option: "LIBRE"
-
 
       # Condición para cuando se detecta movimiento
       - conditions:
@@ -356,7 +353,6 @@ action:
             data:
               option: "LIBRE"
 
-      
       # Condición para cuando se selecciona manualmente LIBRE
       - conditions:
           - condition: trigger
@@ -373,5 +369,10 @@ action:
               seconds: !input delay_between_checks
 
           - service: homeassistant.turn_off
-            target: !input target_lights          
+            target: !input target_lights
 
+          - service: input_number.set_value
+            target:
+              entity_id: "{{ countdown_entity }}"
+            data:
+              value: 0
