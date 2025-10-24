@@ -50,7 +50,7 @@ blueprint:
 
     classroom_status:
       name: Estado del Aula (Helper)
-      description: "Helper input_select que mostrará LIBRE u OCUPADO."
+      description: "Helper input_select que DEBE tener exactamente estas 4 opciones: LIBRE, OCUPADO, PUERTA_ABIERTA, SCAN."
       selector:
         entity:
           domain: input_select
