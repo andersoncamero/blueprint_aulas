@@ -287,7 +287,9 @@ action:
         sequence:
           - if:
               - condition: template
-                value_template: "{{ door_sensor_entity == 'off' }}"
+                value_template: >-
+                  {{ door_sensor_entity != '' and door_sensor_entity is not none and
+                   (is_state(door_sensor_entity, 'on') or is_state(door_sensor_entity, 'open')) }}
             then:
               - service: input_select.select_option
                 target:
