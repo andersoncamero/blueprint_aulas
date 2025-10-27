@@ -128,10 +128,6 @@ trigger:
     to: "LIBRE"
     id: "manual_libre_selected"
 
-  - platform: state
-    entity_id: !input classroom_status
-    to: "OCUPADO"
-    id: "ocupado_selected"
 
 condition: []
 
@@ -225,7 +221,7 @@ action:
               entity_id: "{{ countdown_entity }}"
             data:
               value: 0
-              
+
           - service: input_select.select_option
             target:
               entity_id: !input classroom_status
@@ -313,6 +309,11 @@ action:
             state: "on"
 
         sequence:
+          - service: input_number.set_value
+            target:
+              entity_id: "{{ countdown_entity }}"
+            data:
+              value: 0
           - if:
               - condition: template
                 value_template: >-
@@ -324,6 +325,9 @@ action:
                   entity_id: !input classroom_status
                 data:
                   option: "PUERTA_ABIERTA"
+                
+              - delay:
+                  seconds: !input delay_off_device
 
               - service: climate.set_temperature
                 target: !input target_climates
