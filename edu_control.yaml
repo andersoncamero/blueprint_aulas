@@ -220,6 +220,12 @@ action:
           - condition: trigger
             id: "door_closed"
         sequence:
+          - service: input_number.set_value
+            target:
+              entity_id: "{{ countdown_entity }}"
+            data:
+              value: 0
+              
           - service: input_select.select_option
             target:
               entity_id: !input classroom_status
