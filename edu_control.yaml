@@ -13,7 +13,7 @@ blueprint:
             - switch
           multiple: true
 
-    opening_sensor:
+    door_sensor:
       name: Sensor de puerta (Opcional)
       description: "Un sensor de puerta para detectar eventos de apertura/cierre."
       default: ""
@@ -78,10 +78,15 @@ blueprint:
           mode: slider
           step: 30
 
-    delay_between_checks:
+    delay_off_device:
       name: Intervalo fijo entre comprobaciones
       description: "Temporizador fijo entre comprobaciones (segundos). No configurable desde la interfaz."
-      default: 10
+      default: 60
+    
+    delay_on_device:
+      name: Intervalo fijo entre comprobaciones
+      description: "Temporizador fijo entre comprobaciones (segundos). No configurable desde la interfaz."
+      default: 5
 
     countdown_indicator:
       name: Indicador de Cuenta Regresiva (Opcional)
@@ -108,12 +113,12 @@ trigger:
       - "clear"
     id: "motion_cleared"
   - platform: state
-    entity_id: !input opening_sensor
+    entity_id: !input door_sensor
     from: "off"
     to: "on"
     id: "door_opened"
   - platform: state
-    entity_id: !input opening_sensor
+    entity_id: !input door_sensor
     from: "on"
     to: "off"
     id: "door_closed"
@@ -127,13 +132,16 @@ condition: []
 action:
   - variables:
       motion_sensors_list: !input motion_sensors
-      opening_sensor_entity: !input opening_sensor
+      door_sensor_entity: !input door_sensor
       climate_list: !input target_climates
       lights_list: !input target_lights
       status_entity: !input classroom_status
       countdown_entity: !input countdown_indicator
-      delay_between_checks: !input delay_between_checks
+
+      delay_off_device: !input delay_off_device
+      delay_on_device: !input delay_on_device
       scanning_time: !input off_delay
+
       is_blueprint_change: >-
         {{ trigger.id in ['door_opened', 'door_closed', 'motion_detected', 'motion_cleared'] }}
 
@@ -162,7 +170,7 @@ action:
               hvac_mode: "cool"
 
           - delay:
-              seconds: !input delay_between_checks
+              seconds: !input delay_on_device
 
           - service: homeassistant.turn_on
             target: !input target_lights
@@ -196,7 +204,7 @@ action:
               hvac_mode: "off"
 
           - delay:
-              seconds: !input delay_between_checks
+              seconds: !input delay_off_device
 
           - service: homeassistant.turn_off
             target: !input target_lights
@@ -218,7 +226,7 @@ action:
               temperature: !input target_temperature
               hvac_mode: "cool"
           - delay:
-              seconds: !input delay_between_checks
+              seconds: !input delay_on_device
 
           - service: homeassistant.turn_on
             target: !input target_lights
@@ -277,25 +285,45 @@ action:
             state: "on"
 
         sequence:
-          - service: input_select.select_option
-            target:
-              entity_id: !input classroom_status
-            data:
-              option: "OCUPADO"
+          - if:
+              - condition: template
+                value_template: "{{ door_sensor_entity == 'on' }}"
+            then:
+              - service: input_select.select_option
+                target:
+                  entity_id: !input classroom_status
+                data:
+                  option: "PUERTA_ABIERTA"
 
-          - service: climate.set_temperature
-            target: !input target_climates
-            data:
-              temperature: !input target_temperature
-              hvac_mode: "cool"
+              - service: climate.set_temperature
+                target: !input target_climates
+                data:
+                  temperature: !input target_temperature
+                  hvac_mode: "off"
 
-          # Cuenta regresiva visual para delay_between_checks
+              - delay:
+                  seconds: !input delay_off_device
 
-          - delay:
-              seconds: !input delay_between_checks
+              - service: homeassistant.turn_off
+                target: !input target_lights
+            else:
+              - service: input_select.select_option
+                target:
+                  entity_id: !input classroom_status
+                data:
+                  option: "OCUPADO"
 
-          - service: homeassistant.turn_on
-            target: !input target_lights
+              - service: climate.set_temperature
+                target: !input target_climates
+                data:
+                  temperature: !input target_temperature
+                  hvac_mode: "cool"
+
+              - delay:
+                  seconds: !input delay_on_device
+
+              - service: homeassistant.turn_on
+                target: !input target_lights
 
       # Condición para cuando cesa el movimiento
       - conditions:
@@ -366,7 +394,7 @@ action:
               hvac_mode: "off"
 
           - delay:
-              seconds: !input delay_between_checks
+              seconds: 5
 
           - service: homeassistant.turn_off
             target: !input target_lights
