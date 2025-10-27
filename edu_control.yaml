@@ -82,7 +82,7 @@ blueprint:
       name: Intervalo fijo entre comprobaciones
       description: "Temporizador fijo entre comprobaciones (segundos). No configurable desde la interfaz."
       default: 60
-    
+
     delay_on_device:
       name: Intervalo fijo entre comprobaciones
       description: "Temporizador fijo entre comprobaciones (segundos). No configurable desde la interfaz."
@@ -122,10 +122,16 @@ trigger:
     from: "on"
     to: "off"
     id: "door_closed"
+
   - platform: state
     entity_id: !input classroom_status
     to: "LIBRE"
     id: "manual_libre_selected"
+
+  - platform: state
+    entity_id: !input classroom_status
+    to: "OCUPADO"
+    id: "ocupado_selected"
 
 condition: []
 
@@ -254,27 +260,43 @@ action:
               - delay:
                   seconds: !input off_delay
 
-          - condition: template
-            value_template: >-
-              {%- set motion_entities = motion_sensors_list -%}
-              {%- if motion_entities is string -%}
-                {%- set motion_list = [motion_entities] -%}
-              {%- else -%}
-                {%- set motion_list = motion_entities -%}
-              {%- endif -%}
-              {%- set all_clear = namespace(value=true) -%}
-              {%- for sensor in motion_list -%}
-                {%- if states(sensor) not in ['off', 'clear', 'unavailable'] -%}
-                  {%- set all_clear.value = false -%}
-                {%- endif -%}
-              {%- endfor -%}
-              {{ all_clear.value }}
-
-          - service: input_select.select_option
-            target:
-              entity_id: !input classroom_status
-            data:
-              option: "LIBRE"
+          - if:
+              - condition: template
+                value_template: >-
+                  {%- set motion_entities = motion_sensors_list -%}
+                  {%- if motion_entities is string -%}
+                    {%- set motion_list = [motion_entities] -%}
+                  {%- else -%}
+                    {%- set motion_list = motion_entities -%}
+                  {%- endif -%}
+                  {%- set all_clear = namespace(value=true) -%}
+                  {%- for sensor in motion_list -%}
+                    {%- if states(sensor) not in ['off', 'clear', 'unavailable'] -%}
+                      {%- set all_clear.value = false -%}
+                    {%- endif -%}
+                  {%- endfor -%}
+                  {{ all_clear.value }}
+            then:
+              - service: input_select.select_option
+                target:
+                  entity_id: !input classroom_status
+                data:
+                  option: "LIBRE"
+            else:
+              - service: input_select.select_option
+                target:
+                  entity_id: !input classroom_status
+                data:
+                  option: "OCUPADO"
+              - service: climate.set_temperature
+                target: !input target_climates
+                data:
+                  temperature: !input target_temperature
+                  hvac_mode: "cool"
+              - delay:
+                  seconds: !input delay_on_device
+              - service: homeassistant.turn_on
+                target: !input target_lights
 
       # Condición para cuando se detecta movimiento
       - conditions:
@@ -361,27 +383,43 @@ action:
               - delay:
                   seconds: !input off_delay
 
-          - condition: template
-            value_template: >-
-              {%- set motion_entities = motion_sensors_list -%}
-              {%- if motion_entities is string -%}
-                {%- set motion_list = [motion_entities] -%}
-              {%- else -%}
-                {%- set motion_list = motion_entities -%}
-              {%- endif -%}
-              {%- set all_clear = namespace(value=true) -%}
-              {%- for sensor in motion_list -%}
-                {%- if states(sensor) not in ['off', 'clear', 'unavailable'] -%}
-                  {%- set all_clear.value = false -%}
-                {%- endif -%}
-              {%- endfor -%}
-              {{ all_clear.value }}
-
-          - service: input_select.select_option
-            target:
-              entity_id: !input classroom_status
-            data:
-              option: "LIBRE"
+          - if:
+              - condition: template
+                value_template: >-
+                  {%- set motion_entities = motion_sensors_list -%}
+                  {%- if motion_entities is string -%}
+                    {%- set motion_list = [motion_entities] -%}
+                  {%- else -%}
+                    {%- set motion_list = motion_entities -%}
+                  {%- endif -%}
+                  {%- set all_clear = namespace(value=true) -%}
+                  {%- for sensor in motion_list -%}
+                    {%- if states(sensor) not in ['off', 'clear', 'unavailable'] -%}
+                      {%- set all_clear.value = false -%}
+                    {%- endif -%}
+                  {%- endfor -%}
+                  {{ all_clear.value }}
+            then:
+              - service: input_select.select_option
+                target:
+                  entity_id: !input classroom_status
+                data:
+                  option: "LIBRE"
+            else:
+              - service: input_select.select_option
+                target:
+                  entity_id: !input classroom_status
+                data:
+                  option: "OCUPADO"
+              - service: climate.set_temperature
+                target: !input target_climates
+                data:
+                  temperature: !input target_temperature
+                  hvac_mode: "cool"
+              - delay:
+                  seconds: !input delay_on_device
+              - service: homeassistant.turn_on
+                target: !input target_lights
 
       # Condición para cuando se selecciona manualmente LIBRE
       - conditions:
@@ -406,3 +444,4 @@ action:
               entity_id: "{{ countdown_entity }}"
             data:
               value: 0
+              
