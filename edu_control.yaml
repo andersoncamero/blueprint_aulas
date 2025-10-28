@@ -109,7 +109,7 @@ blueprint:
           domain: input_number
 
     previous_status_display:
-      name: Visualizador Estado Anterior (Opcional)
+      name: Visualizador Estado Anterior
       description: "Helper input_text que mostrará el estado anterior del aula. Útil para debug y monitoreo."
       default: ""
       selector:
