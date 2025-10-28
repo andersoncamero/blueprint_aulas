@@ -78,6 +78,18 @@ blueprint:
           mode: slider
           step: 30
 
+    door_off_delay:
+      name: Tiempo de apagado
+      description: "Tiempo de espera antes de considerar el aula libre tras no detectar presencia."
+      default: 300
+      selector:
+        number:
+          min: 60
+          max: 1800
+          unit_of_measurement: seconds
+          mode: slider
+          step: 30
+
     delay_off_device:
       name: Intervalo fijo entre comprobaciones
       description: "Temporizador fijo entre comprobaciones (segundos). No configurable desde la interfaz."
@@ -151,6 +163,7 @@ action:
       delay_off_device: !input delay_off_device
       delay_on_device: !input delay_on_device
       scanning_time: !input off_delay
+      door_off_delay: !input door_off_delay
 
       is_blueprint_change: >-
         {{ trigger.id in ['door_opened', 'door_closed', 'motion_detected', 'motion_cleared'] }}
@@ -202,13 +215,13 @@ action:
                 value_template: "{{ countdown_entity != '' and countdown_entity is not none }}"
             then:
               - repeat:
-                  count: "{{ (scanning_time / 10) | int }}"
+                  count: "{{ (door_off_delay / 10) | int }}"
                   sequence:
                     - service: input_number.set_value
                       target:
                         entity_id: "{{ countdown_entity }}"
                       data:
-                        value: "{{ scanning_time - (repeat.index * 10) }}"
+                        value: "{{ door_off_delay - (repeat.index * 10) }}"
                     - delay:
                         seconds: 10
               - service: input_number.set_value
@@ -321,7 +334,7 @@ action:
             else:
               - if:
                   - condition: template
-                    value_template: "{{ states(previous_status_entity) == 'OCUPADO' }}"
+                    value_template: "{{ states(previous_status_entity) == 'OCUPADO' or states(previous_status_entity) == 'PUERTA_ABIERTA' }}"
                 then:
                   # Guardar estado anterior antes de cambiar
                   - if:
