@@ -136,10 +136,6 @@ trigger:
     to: "LIBRE"
     id: "manual_libre_selected"
 
-  - platform: state
-    entity_id: !input classroom_status
-    id: "classroom_status_changed"
-
 condition: []
 
 action:
@@ -176,6 +172,17 @@ action:
             entity_id: !input modo_auto
             state: "on"
         sequence:
+          # Guardar estado anterior antes de cambiar
+          - if:
+              - condition: template
+                value_template: "{{ previous_status_entity != '' and previous_status_entity is not none }}"
+            then:
+              - service: input_text.set_value
+                target:
+                  entity_id: "{{ previous_status_entity }}"
+                data:
+                  value: "{{ states(status_entity) }}"
+          
           - service: input_select.select_option
             target:
               entity_id: !input classroom_status
@@ -233,6 +240,17 @@ action:
           - condition: trigger
             id: "door_closed"
         sequence:
+          # Guardar estado anterior antes de cambiar
+          - if:
+              - condition: template
+                value_template: "{{ previous_status_entity != '' and previous_status_entity is not none }}"
+            then:
+              - service: input_text.set_value
+                target:
+                  entity_id: "{{ previous_status_entity }}"
+                data:
+                  value: "{{ states(status_entity) }}"
+          
           - service: input_number.set_value
             target:
               entity_id: "{{ countdown_entity }}"
@@ -285,6 +303,17 @@ action:
                   {%- endfor -%}
                   {{ all_clear.value }}
             then:
+              # Guardar estado anterior antes de cambiar
+              - if:
+                  - condition: template
+                    value_template: "{{ previous_status_entity != '' and previous_status_entity is not none }}"
+                then:
+                  - service: input_text.set_value
+                    target:
+                      entity_id: "{{ previous_status_entity }}"
+                    data:
+                      value: "{{ states(status_entity) }}"
+              
               - service: input_select.select_option
                 target:
                   entity_id: !input classroom_status
@@ -295,12 +324,34 @@ action:
                   - condition: template
                     value_template: "{{ previous_classroom_state == 'OCUPADO' }}"
                 then:
+                  # Guardar estado anterior antes de cambiar
+                  - if:
+                      - condition: template
+                        value_template: "{{ previous_status_entity != '' and previous_status_entity is not none }}"
+                    then:
+                      - service: input_text.set_value
+                        target:
+                          entity_id: "{{ previous_status_entity }}"
+                        data:
+                          value: "{{ states(status_entity) }}"
+                  
                   - service: input_select.select_option
                     target:
                       entity_id: !input classroom_status
                     data:
                       option: "OCUPADO"
                 else:
+                  # Guardar estado anterior antes de cambiar
+                  - if:
+                      - condition: template
+                        value_template: "{{ previous_status_entity != '' and previous_status_entity is not none }}"
+                    then:
+                      - service: input_text.set_value
+                        target:
+                          entity_id: "{{ previous_status_entity }}"
+                        data:
+                          value: "{{ states(status_entity) }}"
+                  
                   - service: input_select.select_option
                     target:
                       entity_id: !input classroom_status
@@ -339,6 +390,17 @@ action:
                   {{ door_sensor_entity != '' and door_sensor_entity is not none and
                    (is_state(door_sensor_entity, 'on') or is_state(door_sensor_entity, 'open')) }}
             then:
+              # Guardar estado anterior antes de cambiar
+              - if:
+                  - condition: template
+                    value_template: "{{ previous_status_entity != '' and previous_status_entity is not none }}"
+                then:
+                  - service: input_text.set_value
+                    target:
+                      entity_id: "{{ previous_status_entity }}"
+                    data:
+                      value: "{{ states(status_entity) }}"
+              
               - service: input_select.select_option
                 target:
                   entity_id: !input classroom_status
@@ -359,6 +421,17 @@ action:
               - service: homeassistant.turn_off
                 target: !input target_lights
             else:
+              # Guardar estado anterior antes de cambiar
+              - if:
+                  - condition: template
+                    value_template: "{{ previous_status_entity != '' and previous_status_entity is not none }}"
+                then:
+                  - service: input_text.set_value
+                    target:
+                      entity_id: "{{ previous_status_entity }}"
+                    data:
+                      value: "{{ states(status_entity) }}"
+              
               - service: input_select.select_option
                 target:
                   entity_id: !input classroom_status
@@ -373,6 +446,16 @@ action:
             id: "motion_cleared"
 
         sequence:
+          # Guardar estado anterior antes de cambiar
+          - if:
+              - condition: template
+                value_template: "{{ previous_status_entity != '' and previous_status_entity is not none }}"
+            then:
+              - service: input_text.set_value
+                target:
+                  entity_id: "{{ previous_status_entity }}"
+                data:
+                  value: "{{ states(status_entity) }}"
 
           - service: input_select.select_option
             target:
@@ -420,6 +503,17 @@ action:
                   {%- endfor -%}
                   {{ all_clear.value }}
             then:
+              # Guardar estado anterior antes de cambiar
+              - if:
+                  - condition: template
+                    value_template: "{{ previous_status_entity != '' and previous_status_entity is not none }}"
+                then:
+                  - service: input_text.set_value
+                    target:
+                      entity_id: "{{ previous_status_entity }}"
+                    data:
+                      value: "{{ states(status_entity) }}"
+              
               - service: input_select.select_option
                 target:
                   entity_id: !input classroom_status
@@ -430,6 +524,17 @@ action:
                   - condition: template
                     value_template: "{{ previous_classroom_state == 'OCUPADO' }}"
                 then:
+                  # Guardar estado anterior antes de cambiar
+                  - if:
+                      - condition: template
+                        value_template: "{{ previous_status_entity != '' and previous_status_entity is not none }}"
+                    then:
+                      - service: input_text.set_value
+                        target:
+                          entity_id: "{{ previous_status_entity }}"
+                        data:
+                          value: "{{ states(status_entity) }}"
+                  
                   - service: input_select.select_option
                     target:
                       entity_id: !input classroom_status
@@ -438,6 +543,17 @@ action:
 
           
                 else:
+                  # Guardar estado anterior antes de cambiar
+                  - if:
+                      - condition: template
+                        value_template: "{{ previous_status_entity != '' and previous_status_entity is not none }}"
+                    then:
+                      - service: input_text.set_value
+                        target:
+                          entity_id: "{{ previous_status_entity }}"
+                        data:
+                          value: "{{ states(status_entity) }}"
+                  
                   - service: input_select.select_option
                     target:
                       entity_id: !input classroom_status
@@ -479,19 +595,3 @@ action:
               entity_id: "{{ countdown_entity }}"
             data:
               value: 0
-
-      # Condición para capturar CUALQUIER cambio en classroom_status
-      - conditions:
-          - condition: trigger
-            id: "classroom_status_changed"
-        sequence:
-          # Solo guardar estado anterior para visualización
-          - if:
-              - condition: template
-                value_template: "{{ previous_status_entity != '' and previous_status_entity is not none }}"
-            then:
-              - service: input_text.set_value
-                target:
-                  entity_id: "{{ previous_status_entity }}"
-                data:
-                  value: "{{ previous_classroom_state }}"
