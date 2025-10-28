@@ -152,11 +152,6 @@ action:
       delay_on_device: !input delay_on_device
       scanning_time: !input off_delay
 
-      previous_classroom_state: >-
-        {{ trigger.from_state.state if trigger.from_state else states(status_entity) }}
-      current_classroom_state: >-
-        {{ trigger.to_state.state if trigger.to_state else states(status_entity) }}
-
       is_blueprint_change: >-
         {{ trigger.id in ['door_opened', 'door_closed', 'motion_detected', 'motion_cleared'] }}
 
@@ -186,17 +181,21 @@ action:
             data:
               option: "PUERTA_ABIERTA"
 
-          - service: climate.set_temperature
-            target: !input target_climates
-            data:
-              temperature: !input target_temperature
-              hvac_mode: "cool"
+          - if:
+                  - condition: template
+                    value_template: "{{ states(previous_status_entity) == 'LIBRE' }}"
+            then:
+              - service: climate.set_temperature
+                target: !input target_climates
+                data:
+                  temperature: !input target_temperature
+                  hvac_mode: "cool"
 
-          - delay:
-              seconds: !input delay_on_device
+              - delay:
+                  seconds: !input delay_on_device
 
-          - service: homeassistant.turn_on
-            target: !input target_lights
+              - service: homeassistant.turn_on
+                target: !input target_lights
 
           - if:
               - condition: template
