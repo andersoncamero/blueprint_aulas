@@ -231,7 +231,7 @@ action:
                   value: 0
             else:
               - delay:
-                  seconds: !input off_delay
+                  seconds: !input door_off_delay
 
           - service: climate.set_hvac_mode
             target: !input target_climates
@@ -418,8 +418,28 @@ action:
                   entity_id: !input classroom_status
                 data:
                   option: "PUERTA_ABIERTA"
-              - delay:
-                  seconds: !input delay_off_device
+              - if:
+                  - condition: template
+                    value_template: "{{ countdown_entity != '' and countdown_entity is not none }}"
+                then:
+                  - repeat:
+                      count: "{{ (door_off_delay / 10) | int }}"
+                      sequence:
+                        - service: input_number.set_value
+                          target:
+                            entity_id: "{{ countdown_entity }}"
+                          data:
+                            value: "{{ door_off_delay - (repeat.index * 10) }}"
+                        - delay:
+                            seconds: 10
+                  - service: input_number.set_value
+                    target:
+                      entity_id: "{{ countdown_entity }}"
+                    data:
+                      value: 0
+                else:
+                  - delay:
+                      seconds: !input door_off_delay
 
               - service: climate.set_temperature
                 target: !input target_climates
@@ -654,7 +674,7 @@ action:
               hvac_mode: "off"
 
           - delay:
-              seconds: 5
+              seconds: 2
 
           - service: homeassistant.turn_off
             target: !input target_lights
