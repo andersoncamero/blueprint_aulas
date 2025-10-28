@@ -104,8 +104,6 @@ blueprint:
         entity:
           domain: input_text
 
-
-
 mode: restart
 max_exceeded: silent
 
@@ -138,8 +136,6 @@ trigger:
     to: "LIBRE"
     id: "manual_libre_selected"
 
-
-
 condition: []
 
 action:
@@ -160,7 +156,7 @@ action:
         {{ trigger.from_state.state if trigger.from_state else states(status_entity) }}
       current_classroom_state: >-
         {{ trigger.to_state.state if trigger.to_state else states(status_entity) }}
-      
+
       is_blueprint_change: >-
         {{ trigger.id in ['door_opened', 'door_closed', 'motion_detected', 'motion_cleared'] }}
 
@@ -176,6 +172,11 @@ action:
             entity_id: !input modo_auto
             state: "on"
         sequence:
+          - service: input_select.select_option
+            target:
+              entity_id: !input classroom_status
+            data:
+              option: "PUERTA_ABIERTA"
           # Guardar estado anterior para visualización
           - if:
               - condition: template
@@ -186,13 +187,6 @@ action:
                   entity_id: "{{ previous_status_entity }}"
                 data:
                   value: "{{ previous_classroom_state }}"
-          
-          - service: input_select.select_option
-            target:
-              entity_id: !input classroom_status
-            data:
-              option: "PUERTA_ABIERTA"
-
           - service: climate.set_temperature
             target: !input target_climates
             data:
@@ -244,17 +238,6 @@ action:
           - condition: trigger
             id: "door_closed"
         sequence:
-          # Guardar estado anterior para visualización
-          - if:
-              - condition: template
-                value_template: "{{ previous_status_entity != '' and previous_status_entity is not none }}"
-            then:
-              - service: input_text.set_value
-                target:
-                  entity_id: "{{ previous_status_entity }}"
-                data:
-                  value: "{{ previous_classroom_state }}"
-          
           - service: input_number.set_value
             target:
               entity_id: "{{ countdown_entity }}"
@@ -266,6 +249,17 @@ action:
               entity_id: !input classroom_status
             data:
               option: "SCAN"
+
+          # Guardar estado anterior para visualización
+          - if:
+              - condition: template
+                value_template: "{{ previous_status_entity != '' and previous_status_entity is not none }}"
+            then:
+              - service: input_text.set_value
+                target:
+                  entity_id: "{{ previous_status_entity }}"
+                data:
+                  value: "{{ previous_classroom_state }}"
 
           - if:
               - condition: template
@@ -313,22 +307,42 @@ action:
                 data:
                   option: "LIBRE"
             else:
-              - if :
-                - condition: template
-                  value_template: "{{ previous_classroom_state == 'OCUPADO' }}"
+              - if:
+                  - condition: template
+                    value_template: "{{ previous_classroom_state == 'OCUPADO' }}"
                 then:
                   - service: input_select.select_option
                     target:
                       entity_id: !input classroom_status
                     data:
                       option: "OCUPADO"
-                else: 
+                  # Guardar estado anterior para visualización
+                  - if:
+                      - condition: template
+                        value_template: "{{ previous_status_entity != '' and previous_status_entity is not none }}"
+                    then:
+                      - service: input_text.set_value
+                        target:
+                          entity_id: "{{ previous_status_entity }}"
+                        data:
+                          value: "{{ previous_classroom_state }}"
+                else:
                   - service: input_select.select_option
                     target:
                       entity_id: !input classroom_status
                     data:
                       option: "OCUPADO"
-
+                  # Guardar estado anterior para visualización
+                  - if:
+                      - condition: template
+                        value_template: "{{ previous_status_entity != '' and previous_status_entity is not none }}"
+                    then:
+                      - service: input_text.set_value
+                        target:
+                          entity_id: "{{ previous_status_entity }}"
+                        data:
+                          value: "{{ previous_classroom_state }}"
+                  
                   - service: climate.set_temperature
                     target: !input target_climates
                     data:
@@ -340,7 +354,6 @@ action:
 
                   - service: homeassistant.turn_on
                     target: !input target_lights
-            
 
       # Condición para cuando se detecta movimiento
       - conditions:
@@ -361,7 +374,7 @@ action:
                   entity_id: "{{ previous_status_entity }}"
                 data:
                   value: "{{ previous_classroom_state }}"
-          
+
           - service: input_number.set_value
             target:
               entity_id: "{{ countdown_entity }}"
@@ -378,7 +391,17 @@ action:
                   entity_id: !input classroom_status
                 data:
                   option: "PUERTA_ABIERTA"
-                
+              # Guardar estado anterior para visualización
+              - if:
+                  - condition: template
+                    value_template: "{{ previous_status_entity != '' and previous_status_entity is not none }}"
+                then:
+                  - service: input_text.set_value
+                    target:
+                      entity_id: "{{ previous_status_entity }}"
+                    data:
+                      value: "{{ previous_classroom_state }}"
+              
               - delay:
                   seconds: !input delay_off_device
 
@@ -399,6 +422,17 @@ action:
                   entity_id: !input classroom_status
                 data:
                   option: "OCUPADO"
+              # Guardar estado anterior para visualización
+              - if:
+                  - condition: template
+                    value_template: "{{ previous_status_entity != '' and previous_status_entity is not none }}"
+                then:
+                  - service: input_text.set_value
+                    target:
+                      entity_id: "{{ previous_status_entity }}"
+                    data:
+                      value: "{{ previous_classroom_state }}"
+          
 
       # Condición para cuando cesa el movimiento
       - conditions:
@@ -416,12 +450,23 @@ action:
                   entity_id: "{{ previous_status_entity }}"
                 data:
                   value: "{{ previous_classroom_state }}"
-          
+
           - service: input_select.select_option
             target:
               entity_id: !input classroom_status
             data:
               option: "SCAN"
+                    # Guardar estado anterior para visualización
+          - if:
+              - condition: template
+                value_template: "{{ previous_status_entity != '' and previous_status_entity is not none }}"
+            then:
+              - service: input_text.set_value
+                target:
+                  entity_id: "{{ previous_status_entity }}"
+                data:
+                  value: "{{ previous_classroom_state }}"
+          
           - if:
               - condition: template
                 value_template: "{{ countdown_entity != '' and countdown_entity is not none }}"
@@ -468,23 +513,43 @@ action:
                 data:
                   option: "LIBRE"
             else:
-              - if :
-                - condition: template
-                  value_template: "{{ previous_classroom_state == 'OCUPADO' }}"
+              - if:
+                  - condition: template
+                    value_template: "{{ previous_classroom_state == 'OCUPADO' }}"
                 then:
                   - service: input_select.select_option
                     target:
                       entity_id: !input classroom_status
                     data:
                       option: "OCUPADO"
-                else: 
+                                # Guardar estado anterior para visualización
+                  - if:
+                      - condition: template
+                        value_template: "{{ previous_status_entity != '' and previous_status_entity is not none }}"
+                    then:
+                      - service: input_text.set_value
+                        target:
+                          entity_id: "{{ previous_status_entity }}"
+                        data:
+                          value: "{{ previous_classroom_state }}"
+          
+                else:
                   - service: input_select.select_option
                     target:
                       entity_id: !input classroom_status
                     data:
                       option: "OCUPADO"
-
-
+          # Guardar estado anterior para visualización
+                  - if:
+                      - condition: template
+                        value_template: "{{ previous_status_entity != '' and previous_status_entity is not none }}"
+                    then:
+                      - service: input_text.set_value
+                        target:
+                          entity_id: "{{ previous_status_entity }}"
+                        data:
+                          value: "{{ previous_classroom_state }}"
+                  
                   - service: climate.set_temperature
                     target: !input target_climates
                     data:
@@ -514,7 +579,7 @@ action:
                   entity_id: "{{ previous_status_entity }}"
                 data:
                   value: "{{ previous_classroom_state }}"
-          
+
           - service: climate.set_hvac_mode
             target: !input target_climates
             data:
@@ -531,4 +596,3 @@ action:
               entity_id: "{{ countdown_entity }}"
             data:
               value: 0
-              
