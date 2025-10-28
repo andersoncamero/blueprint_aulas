@@ -98,7 +98,7 @@ blueprint:
     delay_on_device:
       name: Intervalo fijo entre comprobaciones
       description: "Temporizador fijo entre comprobaciones (segundos). No configurable desde la interfaz."
-      default: 5
+      default: 2
 
     countdown_indicator:
       name: Indicador de Cuenta Regresiva (Opcional)
