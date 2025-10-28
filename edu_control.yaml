@@ -79,8 +79,8 @@ blueprint:
           step: 30
 
     door_off_delay:
-      name: Tiempo de apagado
-      description: "Tiempo de espera antes de considerar el aula libre tras no detectar presencia."
+      name: Tiempo de apagado por puerta abierta
+      description: "Tiempo de espera que se considera el aula libre tras la apertura de la puerta."
       default: 300
       selector:
         number:
@@ -444,6 +444,63 @@ action:
                     data:
                       value: "{{ states(status_entity) }}"
               
+          - if:
+              - condition: template
+                value_template: "{{ countdown_entity != '' and countdown_entity is not none }}"
+            then:
+              - repeat:
+                  count: "{{ (scanning_time / 10) | int }}"
+                  sequence:
+                    - service: input_number.set_value
+                      target:
+                        entity_id: "{{ countdown_entity }}"
+                      data:
+                        value: "{{ scanning_time - (repeat.index * 10) }}"
+                    - delay:
+                        seconds: 10
+              - service: input_number.set_value
+                target:
+                  entity_id: "{{ countdown_entity }}"
+                data:
+                  value: 0
+            else:
+              - delay:
+                  seconds: !input off_delay
+
+          - if:
+              - condition: template
+                value_template: >-
+                  {%- set motion_entities = motion_sensors_list -%}
+                  {%- if motion_entities is string -%}
+                    {%- set motion_list = [motion_entities] -%}
+                  {%- else -%}
+                    {%- set motion_list = motion_entities -%}
+                  {%- endif -%}
+                  {%- set all_clear = namespace(value=true) -%}
+                  {%- for sensor in motion_list -%}
+                    {%- if states(sensor) not in ['off', 'clear', 'unavailable'] -%}
+                      {%- set all_clear.value = false -%}
+                    {%- endif -%}
+                  {%- endfor -%}
+                  {{ all_clear.value }}
+            then:
+              # Guardar estado anterior antes de cambiar
+              - if:
+                  - condition: template
+                    value_template: "{{ previous_status_entity != '' and previous_status_entity is not none }}"
+                then:
+                  - service: input_text.set_value
+                    target:
+                      entity_id: "{{ previous_status_entity }}"
+                    data:
+                      value: "{{ states(status_entity) }}"
+              
+              - service: input_select.select_option
+                target:
+                  entity_id: !input classroom_status
+                data:
+                  option: "LIBRE"
+            else:
               - service: input_select.select_option
                 target:
                   entity_id: !input classroom_status
