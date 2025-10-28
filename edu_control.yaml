@@ -96,6 +96,16 @@ blueprint:
         entity:
           domain: input_number
 
+    previous_status_display:
+      name: Visualizador Estado Anterior (Opcional)
+      description: "Helper input_text que mostrará el estado anterior del aula. Útil para debug y monitoreo."
+      default: ""
+      selector:
+        entity:
+          domain: input_text
+
+
+
 mode: restart
 max_exceeded: silent
 
@@ -129,6 +139,7 @@ trigger:
     id: "manual_libre_selected"
 
 
+
 condition: []
 
 action:
@@ -139,11 +150,17 @@ action:
       lights_list: !input target_lights
       status_entity: !input classroom_status
       countdown_entity: !input countdown_indicator
+      previous_status_entity: !input previous_status_display
 
       delay_off_device: !input delay_off_device
       delay_on_device: !input delay_on_device
       scanning_time: !input off_delay
 
+      previous_classroom_state: >-
+        {{ trigger.from_state.state if trigger.from_state else states(status_entity) }}
+      current_classroom_state: >-
+        {{ trigger.to_state.state if trigger.to_state else states(status_entity) }}
+      
       is_blueprint_change: >-
         {{ trigger.id in ['door_opened', 'door_closed', 'motion_detected', 'motion_cleared'] }}
 
@@ -159,6 +176,17 @@ action:
             entity_id: !input modo_auto
             state: "on"
         sequence:
+          # Guardar estado anterior para visualización
+          - if:
+              - condition: template
+                value_template: "{{ previous_status_entity != '' and previous_status_entity is not none }}"
+            then:
+              - service: input_text.set_value
+                target:
+                  entity_id: "{{ previous_status_entity }}"
+                data:
+                  value: "{{ previous_classroom_state }}"
+          
           - service: input_select.select_option
             target:
               entity_id: !input classroom_status
@@ -216,6 +244,17 @@ action:
           - condition: trigger
             id: "door_closed"
         sequence:
+          # Guardar estado anterior para visualización
+          - if:
+              - condition: template
+                value_template: "{{ previous_status_entity != '' and previous_status_entity is not none }}"
+            then:
+              - service: input_text.set_value
+                target:
+                  entity_id: "{{ previous_status_entity }}"
+                data:
+                  value: "{{ previous_classroom_state }}"
+          
           - service: input_number.set_value
             target:
               entity_id: "{{ countdown_entity }}"
@@ -227,17 +266,6 @@ action:
               entity_id: !input classroom_status
             data:
               option: "SCAN"
-
-          - service: climate.set_temperature
-            target: !input target_climates
-            data:
-              temperature: !input target_temperature
-              hvac_mode: "cool"
-          - delay:
-              seconds: !input delay_on_device
-
-          - service: homeassistant.turn_on
-            target: !input target_lights
 
           - if:
               - condition: template
@@ -285,20 +313,34 @@ action:
                 data:
                   option: "LIBRE"
             else:
-              - service: input_select.select_option
-                target:
-                  entity_id: !input classroom_status
-                data:
-                  option: "OCUPADO"
-              - service: climate.set_temperature
-                target: !input target_climates
-                data:
-                  temperature: !input target_temperature
-                  hvac_mode: "cool"
-              - delay:
-                  seconds: !input delay_on_device
-              - service: homeassistant.turn_on
-                target: !input target_lights
+              - if :
+                - condition: template
+                  value_template: "{{ previous_classroom_state == 'OCUPADO' }}"
+                then:
+                  - service: input_select.select_option
+                    target:
+                      entity_id: !input classroom_status
+                    data:
+                      option: "OCUPADO"
+                else: 
+                  - service: input_select.select_option
+                    target:
+                      entity_id: !input classroom_status
+                    data:
+                      option: "OCUPADO"
+
+                  - service: climate.set_temperature
+                    target: !input target_climates
+                    data:
+                      temperature: !input target_temperature
+                      hvac_mode: "cool"
+
+                  - delay:
+                      seconds: !input delay_on_device
+
+                  - service: homeassistant.turn_on
+                    target: !input target_lights
+            
 
       # Condición para cuando se detecta movimiento
       - conditions:
@@ -309,6 +351,17 @@ action:
             state: "on"
 
         sequence:
+          # Guardar estado anterior para visualización
+          - if:
+              - condition: template
+                value_template: "{{ previous_status_entity != '' and previous_status_entity is not none }}"
+            then:
+              - service: input_text.set_value
+                target:
+                  entity_id: "{{ previous_status_entity }}"
+                data:
+                  value: "{{ previous_classroom_state }}"
+          
           - service: input_number.set_value
             target:
               entity_id: "{{ countdown_entity }}"
@@ -347,24 +400,23 @@ action:
                 data:
                   option: "OCUPADO"
 
-              - service: climate.set_temperature
-                target: !input target_climates
-                data:
-                  temperature: !input target_temperature
-                  hvac_mode: "cool"
-
-              - delay:
-                  seconds: !input delay_on_device
-
-              - service: homeassistant.turn_on
-                target: !input target_lights
-
       # Condición para cuando cesa el movimiento
       - conditions:
           - condition: trigger
             id: "motion_cleared"
 
         sequence:
+          # Guardar estado anterior para visualización
+          - if:
+              - condition: template
+                value_template: "{{ previous_status_entity != '' and previous_status_entity is not none }}"
+            then:
+              - service: input_text.set_value
+                target:
+                  entity_id: "{{ previous_status_entity }}"
+                data:
+                  value: "{{ previous_classroom_state }}"
+          
           - service: input_select.select_option
             target:
               entity_id: !input classroom_status
@@ -416,20 +468,34 @@ action:
                 data:
                   option: "LIBRE"
             else:
-              - service: input_select.select_option
-                target:
-                  entity_id: !input classroom_status
-                data:
-                  option: "OCUPADO"
-              - service: climate.set_temperature
-                target: !input target_climates
-                data:
-                  temperature: !input target_temperature
-                  hvac_mode: "cool"
-              - delay:
-                  seconds: !input delay_on_device
-              - service: homeassistant.turn_on
-                target: !input target_lights
+              - if :
+                - condition: template
+                  value_template: "{{ previous_classroom_state == 'OCUPADO' }}"
+                then:
+                  - service: input_select.select_option
+                    target:
+                      entity_id: !input classroom_status
+                    data:
+                      option: "OCUPADO"
+                else: 
+                  - service: input_select.select_option
+                    target:
+                      entity_id: !input classroom_status
+                    data:
+                      option: "OCUPADO"
+
+
+                  - service: climate.set_temperature
+                    target: !input target_climates
+                    data:
+                      temperature: !input target_temperature
+                      hvac_mode: "cool"
+
+                  - delay:
+                      seconds: !input delay_on_device
+
+                  - service: homeassistant.turn_on
+                    target: !input target_lights
 
       # Condición para cuando se selecciona manualmente LIBRE
       - conditions:
@@ -438,6 +504,17 @@ action:
           - condition: template
             value_template: "{{ not is_blueprint_change }}"
         sequence:
+          # Guardar estado anterior para visualización
+          - if:
+              - condition: template
+                value_template: "{{ previous_status_entity != '' and previous_status_entity is not none }}"
+            then:
+              - service: input_text.set_value
+                target:
+                  entity_id: "{{ previous_status_entity }}"
+                data:
+                  value: "{{ previous_classroom_state }}"
+          
           - service: climate.set_hvac_mode
             target: !input target_climates
             data:
