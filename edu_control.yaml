@@ -166,9 +166,6 @@ action:
           - condition: trigger
             id: "door_opened"
           - condition: state
-            entity_id: !input classroom_status
-            state: "LIBRE"
-          - condition: state
             entity_id: !input modo_auto
             state: "on"
         sequence:
@@ -239,6 +236,9 @@ action:
       - conditions:
           - condition: trigger
             id: "door_closed"
+          - condition: state
+            entity_id: !input modo_auto
+            state: "on"
         sequence:
           # Guardar estado anterior antes de cambiar
           - if:
@@ -322,7 +322,7 @@ action:
             else:
               - if:
                   - condition: template
-                    value_template: "{{ previous_status_entity == 'OCUPADO' }}"
+                    value_template: "{{ states(previous_status_entity) == 'OCUPADO' }}"
                 then:
                   # Guardar estado anterior antes de cambiar
                   - if:
@@ -438,13 +438,13 @@ action:
                 data:
                   option: "OCUPADO"
 
-          
-
       # Condición para cuando cesa el movimiento
       - conditions:
           - condition: trigger
             id: "motion_cleared"
-
+          - condition: state
+            entity_id: !input modo_auto
+            state: "on"
         sequence:
           # Guardar estado anterior antes de cambiar
           - if:
@@ -522,7 +522,7 @@ action:
             else:
               - if:
                   - condition: template
-                    value_template: "{{ previous_classroom_state == 'OCUPADO' }}"
+                    value_template: "{{ states(previous_status_entity) == 'OCUPADO' }}"
                 then:
                   # Guardar estado anterior antes de cambiar
                   - if:
