@@ -322,7 +322,7 @@ action:
             else:
               - if:
                   - condition: template
-                    value_template: "{{ previous_classroom_state == 'OCUPADO' }}"
+                    value_template: "{{ previous_status_entity == 'OCUPADO' }}"
                 then:
                   # Guardar estado anterior antes de cambiar
                   - if:
