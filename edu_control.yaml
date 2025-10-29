@@ -177,13 +177,10 @@ action:
       - conditions:
           - condition: trigger
             id: "door_opened"
-          - condition: state
-            entity_id: !input modo_auto
-            state: "on"
         sequence:
           - if:
               - condition: template
-                value_template: "{{ states(previous_status_entity) == 'LIBRE' or states(status_entity) == 'LIBRE' }}"
+                value_template: "{{ states(previous_status_entity) == 'LIBRE' or states(status_entity) == 'LIBRE' and states(modo_auto) == 'on'}}"
             then:
               - service: homeassistant.turn_on
                 target: !input target_lights
@@ -249,9 +246,7 @@ action:
       - conditions:
           - condition: trigger
             id: "door_closed"
-          - condition: state
-            entity_id: !input modo_auto
-            state: "on"
+
         sequence:
           # Guardar estado anterior antes de cambiar
           - if:
@@ -335,7 +330,7 @@ action:
             else:
               - if:
                   - condition: template
-                    value_template: "{{ states(previous_status_entity) == 'OCUPADO'}}"
+                    value_template: "{{ states(previous_status_entity) == 'OCUPADO' and states(modo_auto) == 'on'}}"
                 then:
                   # Guardar estado anterior antes de cambiar
                   - if:
@@ -353,11 +348,28 @@ action:
                       entity_id: !input classroom_status
                     data:
                       option: "OCUPADO"
+                  - service: climate.set_temperature
+                    target: !input target_climates
+                    data:
+                      temperature: !input target_temperature
+                      hvac_mode: "cool"
                 else:
                   - if:
                       - condition: template
-                        value_template: "{{ states(previous_status_entity) == 'SCAN' }}"
+                        value_template: "{{ states(previous_status_entity) == 'SCAN' and states(modo_auto) == 'on'}}"
                     then:
+                      - service: climate.set_temperature
+                        target: !input target_climates
+                        data:
+                          temperature: !input target_temperature
+                          hvac_mode: "cool"
+
+                      - delay:
+                          seconds: !input delay_on_device
+
+                      - service: homeassistant.turn_on
+                        target: !input target_lights
+
                       # Guardar estado anterior antes de cambiar
                       - if:
                           - condition: template
@@ -375,17 +387,40 @@ action:
                         data:
                           option: "OCUPADO"
 
-                      - service: climate.set_temperature
-                        target: !input target_climates
-                        data:
-                          temperature: !input target_temperature
-                          hvac_mode: "cool"
 
-                      - delay:
-                          seconds: !input delay_on_device
+                    else:
+                      - if:
+                          - condition: template
+                            value_template: "{{ states(previous_status_entity) == 'PUERTA_ABIERTA' and states(modo_auto) == 'on'}}"
+                        then:
+                          - service: homeassistant.turn_on
+                            target: !input target_lights
 
-                      - service: homeassistant.turn_on
-                        target: !input target_lights
+                          - delay:
+                              seconds: !input delay_on_device
+
+                          - service: climate.set_temperature
+                            target: !input target_climates
+                            data:
+                              temperature: !input target_temperature
+                              hvac_mode: "cool"
+
+                          # Guardar estado anterior antes de cambiar
+                          - if:
+                              - condition: template
+                                value_template: "{{ previous_status_entity != '' and previous_status_entity is not none }}"
+                            then:
+                              - service: input_text.set_value
+                                target:
+                                  entity_id: "{{ previous_status_entity }}"
+                                data:
+                                  value: "{{ states(status_entity) }}"
+
+                          - service: input_select.select_option
+                            target:
+                              entity_id: !input classroom_status
+                            data:
+                              option: "OCUPADO"
 
       # Condición para cuando se detecta movimiento
       # - conditions:
