@@ -273,20 +273,62 @@ action:
               option: "SCAN"
           - if: 
               - condition: template
-                value_template: "{{ states(lights_list) == 'off'  and states(modo_auto) == 'on'}}"
+                value_template: >-
+                  {% if lights_list.entity_id is defined %}
+                    {% set light_entities = lights_list.entity_id %}
+                    {% if light_entities is string %}
+                      {{ states(light_entities) == 'off' and states(modo_auto) == 'on' }}
+                    {% else %}
+                      {{ light_entities | map('states') | select('==', 'off') | list | count > 0 and states(modo_auto) == 'on' }}
+                    {% endif %}
+                  {% else %}
+                    {{ false }}
+                  {% endif %}
             then:
               - service: homeassistant.turn_on
-                target: !input target_lights
+                target:
+                  entity_id: >-
+                    {% if lights_list.entity_id is defined %}
+                      {% set light_entities = lights_list.entity_id %}
+                      {% if light_entities is string %}
+                        {% if states(light_entities) == 'off' %}
+                          {{ light_entities }}
+                        {% endif %}
+                      {% else %}
+                        {{ light_entities | select('is_state', 'off') | list }}
+                      {% endif %}
+                    {% endif %}
 
           - delay:
               seconds: !input delay_on_device
 
           - if: 
               - condition: template
-                value_template: "{{ states(climate_list) == 'off' and states(modo_auto) == 'on'}}"
+                value_template: >-
+                  {% if climate_list.entity_id is defined %}
+                    {% set climate_entities = climate_list.entity_id %}
+                    {% if climate_entities is string %}
+                      {{ states(climate_entities) == 'off' and states(modo_auto) == 'on' }}
+                    {% else %}
+                      {{ climate_entities | map('states') | select('==', 'off') | list | count > 0 and states(modo_auto) == 'on' }}
+                    {% endif %}
+                  {% else %}
+                    {{ false }}
+                  {% endif %}
             then:
               - service: climate.set_temperature
-                target: !input target_climates
+                target:
+                  entity_id: >-
+                    {% if climate_list.entity_id is defined %}
+                      {% set climate_entities = climate_list.entity_id %}
+                      {% if climate_entities is string %}
+                        {% if states(climate_entities) == 'off' %}
+                          {{ climate_entities }}
+                        {% endif %}
+                      {% else %}
+                        {{ climate_entities | select('is_state', 'off') | list }}
+                      {% endif %}
+                    {% endif %}
                 data:
                   temperature: !input target_temperature
                   hvac_mode: "cool"
