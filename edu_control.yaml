@@ -310,7 +310,7 @@ action:
                     {%- endif -%}
                     {%- set any_off = namespace(value=false) -%}
                     {%- for climate in climate_list_entities -%}
-                      {%- if states(climate) in ['off', 'unavailable'] -%}
+                      {%- if state_attr(climate, 'hvac_mode') in ['off', 'unavailable', none] -%}
                         {%- set any_off.value = true -%}
                       {%- endif -%}
                     {%- endfor -%}
