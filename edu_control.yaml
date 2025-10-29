@@ -273,7 +273,7 @@ action:
               option: "SCAN"
           - if: 
               - condition: template
-                value_template: "{{ states(lights_list) == 'off' or states(lights_list) == 'unavailable' and states(modo_auto) == 'on'}}"
+                value_template: "{{ states(lights_list) == 'off'  and states(modo_auto) == 'on'}}"
             then:
               - service: homeassistant.turn_on
                 target: !input target_lights
@@ -283,7 +283,7 @@ action:
 
           - if: 
               - condition: template
-                value_template: "{{ states(climate_list) == 'off' or states(climate_list) == 'unavailable' and states(modo_auto) == 'on'}}"
+                value_template: "{{ states(climate_list) == 'off' and states(modo_auto) == 'on'}}"
             then:
               - service: climate.set_temperature
                 target: !input target_climates
