@@ -274,16 +274,23 @@ action:
           - if: 
               - condition: template
                 value_template: >-
-                  {% if lights_list.entity_id is defined and states(modo_auto) == 'on' %}
-                    {% set light_entities = lights_list.entity_id %}
-                    {% if light_entities is string %}
-                      {{ states(light_entities) == 'off' }}
-                    {% else %}
-                      {{ light_entities | map('states') | select('==', 'off') | list | count > 0 }}
-                    {% endif %}
-                  {% else %}
+                  {%- set light_entities = lights_list.entity_id if lights_list.entity_id is defined else [] -%}
+                  {%- if light_entities and states(modo_auto) == 'on' -%}
+                    {%- if light_entities is string -%}
+                      {%- set light_list = [light_entities] -%}
+                    {%- else -%}
+                      {%- set light_list = light_entities -%}
+                    {%- endif -%}
+                    {%- set any_off = namespace(value=false) -%}
+                    {%- for light in light_list -%}
+                      {%- if states(light) in ['off', 'unavailable'] -%}
+                        {%- set any_off.value = true -%}
+                      {%- endif -%}
+                    {%- endfor -%}
+                    {{ any_off.value }}
+                  {%- else -%}
                     {{ false }}
-                  {% endif %}
+                  {%- endif -%}
             then:
               - service: homeassistant.turn_on
                 target: !input target_lights
@@ -294,16 +301,23 @@ action:
           - if: 
               - condition: template
                 value_template: >-
-                  {% if climate_list.entity_id is defined and states(modo_auto) == 'on' %}
-                    {% set climate_entities = climate_list.entity_id %}
-                    {% if climate_entities is string %}
-                      {{ states(climate_entities) == 'off' }}
-                    {% else %}
-                      {{ climate_entities | map('states') | select('==', 'off') | list | count > 0 }}
-                    {% endif %}
-                  {% else %}
+                  {%- set climate_entities = climate_list.entity_id if climate_list.entity_id is defined else [] -%}
+                  {%- if climate_entities and states(modo_auto) == 'on' -%}
+                    {%- if climate_entities is string -%}
+                      {%- set climate_list_entities = [climate_entities] -%}
+                    {%- else -%}
+                      {%- set climate_list_entities = climate_entities -%}
+                    {%- endif -%}
+                    {%- set any_off = namespace(value=false) -%}
+                    {%- for climate in climate_list_entities -%}
+                      {%- if states(climate) in ['off', 'unavailable'] -%}
+                        {%- set any_off.value = true -%}
+                      {%- endif -%}
+                    {%- endfor -%}
+                    {{ any_off.value }}
+                  {%- else -%}
                     {{ false }}
-                  {% endif %}
+                  {%- endif -%}
             then:
               - service: climate.set_temperature
                 target: !input target_climates
