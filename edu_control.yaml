@@ -298,32 +298,11 @@ action:
           - delay:
               seconds: !input delay_on_device
 
-          - if: 
-              - condition: template
-                value_template: >-
-                  {%- set climate_entities = climate_list.entity_id if climate_list.entity_id is defined else [] -%}
-                  {%- if climate_entities and states(modo_auto) == 'on' -%}
-                    {%- if climate_entities is string -%}
-                      {%- set climate_list_entities = [climate_entities] -%}
-                    {%- else -%}
-                      {%- set climate_list_entities = climate_entities -%}
-                    {%- endif -%}
-                    {%- set any_off = namespace(value=false) -%}
-                    {%- for climate in climate_list_entities -%}
-                      {%- if state_attr(climate, 'hvac_mode') in ['off', 'unavailable', none] -%}
-                        {%- set any_off.value = true -%}
-                      {%- endif -%}
-                    {%- endfor -%}
-                    {{ any_off.value }}
-                  {%- else -%}
-                    {{ false }}
-                  {%- endif -%}
-            then:
-              - service: climate.set_temperature
-                target: !input target_climates
-                data:
-                  temperature: !input target_temperature
-                  hvac_mode: "cool"
+          - service: climate.set_temperature
+            target: !input target_climates
+            data:
+              temperature: !input target_temperature
+              hvac_mode: "cool"
 
           - if:
               - condition: template
