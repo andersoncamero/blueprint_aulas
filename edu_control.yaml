@@ -159,6 +159,7 @@ action:
       door_sensor_entity: !input door_sensor
       climate_list: !input target_climates
       lights_list: !input target_lights
+      modo_auto: !input modo_auto
 
       status_entity: !input classroom_status
       countdown_entity: !input countdown_indicator
