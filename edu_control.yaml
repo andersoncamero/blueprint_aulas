@@ -357,7 +357,7 @@ action:
                 else:
                   - if:
                       - condition: template
-                        value_template: "{{ states(previous_status_entity) == 'SCAN' and states(modo_auto) == 'on'}}"
+                        value_template: "{{ states(previous_status_entity) == 'LIBRE' and states(modo_auto) == 'on'}}"
                     then:
                       - service: climate.set_temperature
                         target: !input target_climates
