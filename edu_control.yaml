@@ -266,12 +266,7 @@ action:
             data:
               value: 0
 
-          - service: input_select.select_option
-            target:
-              entity_id: !input classroom_status
-            data:
-              option: "SCAN"
-          - if:
+         - if:
               - condition: template
                 value_template: >-
                   {%- set light_entities = lights_list.entity_id if lights_list.entity_id is defined else [] -%}
@@ -294,6 +289,12 @@ action:
             then:
               - service: homeassistant.turn_on
                 target: !input target_lights
+
+          - service: input_select.select_option
+            target:
+              entity_id: !input classroom_status
+            data:
+              option: "SCAN"
 
           - delay:
               seconds: !input delay_on_device
