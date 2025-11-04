@@ -265,8 +265,7 @@ action:
               entity_id: "{{ countdown_entity }}"
             data:
               value: 0
-
-         - if:
+          - if:
               - condition: template
                 value_template: >-
                   {%- set light_entities = lights_list.entity_id if lights_list.entity_id is defined else [] -%}
@@ -299,8 +298,8 @@ action:
           - delay:
               seconds: !input delay_on_device
           - if:
-            - condition: template
-              value_template: "{{ states(modo_auto) == 'on'}}" 
+              - condition: template
+                value_template: "{{ states(modo_auto) == 'on'}}"
             then:
               - service: climate.set_temperature
                 target: !input target_climates
@@ -420,11 +419,11 @@ action:
                           option: "OCUPADO"
 
                     else:
-                          - service: input_select.select_option
-                            target:
-                              entity_id: !input classroom_status
-                            data:
-                              option: "OCUPADO"
+                      - service: input_select.select_option
+                        target:
+                          entity_id: !input classroom_status
+                        data:
+                          option: "OCUPADO"
 
       # Condición para cuando se detecta movimiento
       # - conditions:
