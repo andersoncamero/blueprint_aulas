@@ -297,12 +297,15 @@ action:
 
           - delay:
               seconds: !input delay_on_device
-
-          - service: climate.set_temperature
-            target: !input target_climates
-            data:
-              temperature: !input target_temperature
-              hvac_mode: "cool"
+          - if:
+            - condition: template
+              value_template: "{{ states(modo_auto) == 'on'}}" 
+            then:
+              - service: climate.set_temperature
+                target: !input target_climates
+                data:
+                  temperature: !input target_temperature
+                  hvac_mode: "cool"
 
           - if:
               - condition: template
