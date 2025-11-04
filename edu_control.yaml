@@ -275,7 +275,7 @@ action:
               - condition: template
                 value_template: >-
                   {%- set light_entities = lights_list.entity_id if lights_list.entity_id is defined else [] -%}
-                  {%- if light_entities and states(modo_auto) == 'on' and states(previous_status_entity) == 'PUERTA_ABIERTA' -%}
+                  {%- if light_entities and states(modo_auto) == 'on' and states(previous_status_entity) == 'PUERTA_ABIERTA' and states(status_entity) != "OCUPADO" -%}
                     {%- if light_entities is string -%}
                       {%- set light_list = [light_entities] -%}
                     {%- else -%}
