@@ -271,11 +271,11 @@ action:
               entity_id: !input classroom_status
             data:
               option: "SCAN"
-          - if: 
+          - if:
               - condition: template
                 value_template: >-
                   {%- set light_entities = lights_list.entity_id if lights_list.entity_id is defined else [] -%}
-                  {%- if light_entities and states(modo_auto) == 'on' -%}
+                  {%- if light_entities and states(modo_auto) == 'on' and states(previous_status_entity) == 'PUERTA_ABIERTA' -%}
                     {%- if light_entities is string -%}
                       {%- set light_list = [light_entities] -%}
                     {%- else -%}
@@ -381,27 +381,22 @@ action:
                       entity_id: !input classroom_status
                     data:
                       option: "OCUPADO"
-                  - service: climate.set_temperature
-                    target: !input target_climates
-                    data:
-                      temperature: !input target_temperature
-                      hvac_mode: "cool"
                 else:
                   - if:
                       - condition: template
                         value_template: "{{ states(previous_status_entity) == 'LIBRE' and states(modo_auto) == 'on'}}"
                     then:
+                      - service: homeassistant.turn_on
+                        target: !input target_lights
+
+                      - delay:
+                          seconds: !input delay_on_device
+
                       - service: climate.set_temperature
                         target: !input target_climates
                         data:
                           temperature: !input target_temperature
                           hvac_mode: "cool"
-
-                      - delay:
-                          seconds: !input delay_on_device
-
-                      - service: homeassistant.turn_on
-                        target: !input target_lights
 
                       # Guardar estado anterior antes de cambiar
                       - if:
@@ -420,35 +415,7 @@ action:
                         data:
                           option: "OCUPADO"
 
-
                     else:
-                      - if:
-                          - condition: template
-                            value_template: "{{ states(previous_status_entity) == 'PUERTA_ABIERTA' and states(modo_auto) == 'on'}}"
-                        then:
-                          - service: homeassistant.turn_on
-                            target: !input target_lights
-
-                          - delay:
-                              seconds: !input delay_on_device
-
-                          - service: climate.set_temperature
-                            target: !input target_climates
-                            data:
-                              temperature: !input target_temperature
-                              hvac_mode: "cool"
-
-                          # Guardar estado anterior antes de cambiar
-                          - if:
-                              - condition: template
-                                value_template: "{{ previous_status_entity != '' and previous_status_entity is not none }}"
-                            then:
-                              - service: input_text.set_value
-                                target:
-                                  entity_id: "{{ previous_status_entity }}"
-                                data:
-                                  value: "{{ states(status_entity) }}"
-
                           - service: input_select.select_option
                             target:
                               entity_id: !input classroom_status
