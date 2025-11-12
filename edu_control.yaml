@@ -716,8 +716,28 @@ action:
             data:
               hvac_mode: "off"
 
-          - delay:
-              seconds: 2
+          - if:
+              - condition: template
+                value_template: "{{ countdown_entity != '' and countdown_entity is not none }}"
+            then:
+              - repeat:
+                  count: "{{ (door_off_delay / 10) | int }}"
+                  sequence:
+                    - service: input_number.set_value
+                      target:
+                        entity_id: "{{ countdown_entity }}"
+                      data:
+                        value: "{{ door_off_delay - (repeat.index * 10) }}"
+                    - delay:
+                        seconds: 10
+              - service: input_number.set_value
+                target:
+                  entity_id: "{{ countdown_entity }}"
+                data:
+                  value: 0
+            else:
+              - delay:
+                  seconds: !input door_off_delay
 
           - service: homeassistant.turn_off
             target: !input target_lights
