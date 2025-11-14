@@ -181,7 +181,7 @@ action:
         sequence:
           - if:
               - condition: template
-                value_template: "{{ states(previous_status_entity) == 'LIBRE' or states(status_entity) == 'LIBRE' and states(modo_auto) == 'on'}}"
+                value_template: "{{ states(status_entity) == 'LIBRE' and states(modo_auto) == 'on'}}"
             then:
               - service: homeassistant.turn_on
                 target: !input target_lights
