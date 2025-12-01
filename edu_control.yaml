@@ -348,11 +348,10 @@ action:
                   {%- endfor -%}
                   {{ all_clear.value }}
             then:
-
               - service: climate.set_hvac_mode
                 target: !input target_climates
                 data:
-                  hvac_mode: "off"              
+                  hvac_mode: "off"
 
           - if:
               - condition: template
@@ -437,18 +436,11 @@ action:
                       - condition: template
                         value_template: "{{ states(previous_status_entity) == 'LIBRE' and states(modo_auto) == 'on'}}"
                     then:
-                      - service: homeassistant.turn_on
-                        target: !input target_lights
-
-                      - delay:
-                          seconds: !input delay_on_device
-
                       - service: climate.set_temperature
                         target: !input target_climates
                         data:
                           temperature: !input target_temperature
                           hvac_mode: "cool"
-
                       # Guardar estado anterior antes de cambiar
                       - if:
                           - condition: template
@@ -465,291 +457,12 @@ action:
                           entity_id: !input classroom_status
                         data:
                           option: "OCUPADO"
-
                     else:
                       - service: input_select.select_option
                         target:
                           entity_id: !input classroom_status
                         data:
                           option: "OCUPADO"
-
-      # Condición para cuando se detecta movimiento
-      # - conditions:
-      #     - condition: trigger
-      #       id: "motion_detected"
-      #     - condition: state
-      #       entity_id: !input modo_auto
-      #       state: "on"
-
-      #   sequence:
-      #     - service: input_number.set_value
-      #       target:
-      #         entity_id: "{{ countdown_entity }}"
-      #       data:
-      #         value: 0
-      #     - if:
-      #         - condition: template
-      #           value_template: >-
-      #             {{ door_sensor_entity != '' and door_sensor_entity is not none and
-      #              (is_state(door_sensor_entity, 'on') or is_state(door_sensor_entity, 'open')) }}
-      #       then:
-      #         # Guardar estado anterior antes de cambiar
-      #         - if:
-      #             - condition: template
-      #               value_template: "{{ previous_status_entity != '' and previous_status_entity is not none }}"
-      #           then:
-      #             - service: input_text.set_value
-      #               target:
-      #                 entity_id: "{{ previous_status_entity }}"
-      #               data:
-      #                 value: "{{ states(status_entity) }}"
-
-      #         - service: input_select.select_option
-      #           target:
-      #             entity_id: !input classroom_status
-      #           data:
-      #             option: "PUERTA_ABIERTA"
-      #         - if:
-      #             - condition: template
-      #               value_template: "{{ countdown_entity != '' and countdown_entity is not none }}"
-      #           then:
-      #             - repeat:
-      #                 count: "{{ (door_off_delay / 10) | int }}"
-      #                 sequence:
-      #                   - service: input_number.set_value
-      #                     target:
-      #                       entity_id: "{{ countdown_entity }}"
-      #                     data:
-      #                       value: "{{ door_off_delay - (repeat.index * 10) }}"
-      #                   - delay:
-      #                       seconds: 10
-      #             - service: input_number.set_value
-      #               target:
-      #                 entity_id: "{{ countdown_entity }}"
-      #               data:
-      #                 value: 0
-      #           else:
-      #             - delay:
-      #                 seconds: !input door_off_delay
-
-      #         - service: climate.set_temperature
-      #           target: !input target_climates
-      #           data:
-      #             temperature: !input target_temperature
-      #             hvac_mode: "off"
-
-      #         - delay:
-      #             seconds: !input delay_off_device
-
-      #         - service: homeassistant.turn_off
-      #           target: !input target_lights
-      #       else:
-      #         # Guardar estado anterior antes de cambiar
-      #         - if:
-      #             - condition: template
-      #               value_template: "{{ previous_status_entity != '' and previous_status_entity is not none }}"
-      #           then:
-      #             - service: input_text.set_value
-      #               target:
-      #                 entity_id: "{{ previous_status_entity }}"
-      #               data:
-      #                 value: "{{ states(status_entity) }}"
-
-      #     - if:
-      #         - condition: template
-      #           value_template: "{{ countdown_entity != '' and countdown_entity is not none }}"
-      #       then:
-      #         - repeat:
-      #             count: "{{ (scanning_time / 10) | int }}"
-      #             sequence:
-      #               - service: input_number.set_value
-      #                 target:
-      #                   entity_id: "{{ countdown_entity }}"
-      #                 data:
-      #                   value: "{{ scanning_time - (repeat.index * 10) }}"
-      #               - delay:
-      #                   seconds: 10
-      #         - service: input_number.set_value
-      #           target:
-      #             entity_id: "{{ countdown_entity }}"
-      #           data:
-      #             value: 0
-      #       else:
-      #         - delay:
-      #             seconds: !input off_delay
-
-      #     - if:
-      #         - condition: template
-      #           value_template: >-
-      #             {%- set motion_entities = motion_sensors_list -%}
-      #             {%- if motion_entities is string -%}
-      #               {%- set motion_list = [motion_entities] -%}
-      #             {%- else -%}
-      #               {%- set motion_list = motion_entities -%}
-      #             {%- endif -%}
-      #             {%- set all_clear = namespace(value=true) -%}
-      #             {%- for sensor in motion_list -%}
-      #               {%- if states(sensor) not in ['off', 'clear', 'unavailable'] -%}
-      #                 {%- set all_clear.value = false -%}
-      #               {%- endif -%}
-      #             {%- endfor -%}
-      #             {{ all_clear.value }}
-      #       then:
-      #         # Guardar estado anterior antes de cambiar
-      #         - if:
-      #             - condition: template
-      #               value_template: "{{ previous_status_entity != '' and previous_status_entity is not none }}"
-      #           then:
-      #             - service: input_text.set_value
-      #               target:
-      #                 entity_id: "{{ previous_status_entity }}"
-      #               data:
-      #                 value: "{{ states(status_entity) }}"
-
-      #         - service: input_select.select_option
-      #           target:
-      #             entity_id: !input classroom_status
-      #           data:
-      #             option: "LIBRE"
-      #       else:
-      #         - service: input_select.select_option
-      #           target:
-      #             entity_id: !input classroom_status
-      #           data:
-      #             option: "OCUPADO"
-
-      # Condición para cuando cesa el movimiento
-      # - conditions:
-      #     - condition: trigger
-      #       id: "motion_cleared"
-      #     - condition: state
-      #       entity_id: !input modo_auto
-      #       state: "on"
-      #   sequence:
-      #     # Guardar estado anterior antes de cambiar
-      #     - if:
-      #         - condition: template
-      #           value_template: "{{ previous_status_entity != '' and previous_status_entity is not none }}"
-      #       then:
-      #         - service: input_text.set_value
-      #           target:
-      #             entity_id: "{{ previous_status_entity }}"
-      #           data:
-      #             value: "{{ states(status_entity) }}"
-
-      #     - service: input_select.select_option
-      #       target:
-      #         entity_id: !input classroom_status
-      #       data:
-      #         option: "SCAN"
-
-      #     - if:
-      #         - condition: template
-      #           value_template: "{{ countdown_entity != '' and countdown_entity is not none }}"
-      #       then:
-      #         - repeat:
-      #             count: "{{ (scanning_time / 10) | int }}"
-      #             sequence:
-      #               - service: input_number.set_value
-      #                 target:
-      #                   entity_id: "{{ countdown_entity }}"
-      #                 data:
-      #                   value: "{{ scanning_time - (repeat.index * 10) }}"
-      #               - delay:
-      #                   seconds: 10
-      #         - service: input_number.set_value
-      #           target:
-      #             entity_id: "{{ countdown_entity }}"
-      #           data:
-      #             value: 0
-      #       else:
-      #         - delay:
-      #             seconds: !input off_delay
-
-      #     - if:
-      #         - condition: template
-      #           value_template: >-
-      #             {%- set motion_entities = motion_sensors_list -%}
-      #             {%- if motion_entities is string -%}
-      #               {%- set motion_list = [motion_entities] -%}
-      #             {%- else -%}
-      #               {%- set motion_list = motion_entities -%}
-      #             {%- endif -%}
-      #             {%- set all_clear = namespace(value=true) -%}
-      #             {%- for sensor in motion_list -%}
-      #               {%- if states(sensor) not in ['off', 'clear', 'unavailable'] -%}
-      #                 {%- set all_clear.value = false -%}
-      #               {%- endif -%}
-      #             {%- endfor -%}
-      #             {{ all_clear.value }}
-      #       then:
-      #         # Guardar estado anterior antes de cambiar
-      #         - if:
-      #             - condition: template
-      #               value_template: "{{ previous_status_entity != '' and previous_status_entity is not none }}"
-      #           then:
-      #             - service: input_text.set_value
-      #               target:
-      #                 entity_id: "{{ previous_status_entity }}"
-      #               data:
-      #                 value: "{{ states(status_entity) }}"
-
-      #         - service: input_select.select_option
-      #           target:
-      #             entity_id: !input classroom_status
-      #           data:
-      #             option: "LIBRE"
-      #       else:
-      #         - if:
-      #             - condition: template
-      #               value_template: "{{ states(previous_status_entity) == 'OCUPADO' }}"
-      #           then:
-      #             # Guardar estado anterior antes de cambiar
-      #             - if:
-      #                 - condition: template
-      #                   value_template: "{{ previous_status_entity != '' and previous_status_entity is not none }}"
-      #               then:
-      #                 - service: input_text.set_value
-      #                   target:
-      #                     entity_id: "{{ previous_status_entity }}"
-      #                   data:
-      #                     value: "{{ states(status_entity) }}"
-
-      #             - service: input_select.select_option
-      #               target:
-      #                 entity_id: !input classroom_status
-      #               data:
-      #                 option: "OCUPADO"
-
-      #           else:
-      #             # Guardar estado anterior antes de cambiar
-      #             - if:
-      #                 - condition: template
-      #                   value_template: "{{ previous_status_entity != '' and previous_status_entity is not none }}"
-      #               then:
-      #                 - service: input_text.set_value
-      #                   target:
-      #                     entity_id: "{{ previous_status_entity }}"
-      #                   data:
-      #                     value: "{{ states(status_entity) }}"
-
-      #             - service: input_select.select_option
-      #               target:
-      #                 entity_id: !input classroom_status
-      #               data:
-      #                 option: "OCUPADO"
-
-      #             - service: climate.set_temperature
-      #               target: !input target_climates
-      #               data:
-      #                 temperature: !input target_temperature
-      #                 hvac_mode: "cool"
-
-      #             - delay:
-      #                 seconds: !input delay_on_device
-
-      #             - service: homeassistant.turn_on
-      #               target: !input target_lights
 
       # Condición para cuando se selecciona manualmente LIBRE
       - conditions:
@@ -763,34 +476,58 @@ action:
             data:
               hvac_mode: "off"
 
+          - delay:
+              seconds: 10
+
           - if:
               - condition: template
-                value_template: "{{ countdown_entity != '' and countdown_entity is not none }}"
+                value_template: >-
+                  {%- set motion_entities = motion_sensors_list -%}
+                  {%- if motion_entities is string -%}
+                    {%- set motion_list = [motion_entities] -%}
+                  {%- else -%}
+                    {%- set motion_list = motion_entities -%}
+                  {%- endif -%}
+                  {%- set all_clear = namespace(value=true) -%}
+                  {%- for sensor in motion_list -%}
+                    {%- if states(sensor) not in ['off', 'clear', 'unavailable'] -%}
+                      {%- set all_clear.value = false -%}
+                    {%- endif -%}
+                  {%- endfor -%}
+                  {{ all_clear.value }}
             then:
-              - repeat:
-                  count: "{{ (door_off_delay / 10) | int }}"
-                  sequence:
-                    - service: input_number.set_value
-                      target:
-                        entity_id: "{{ countdown_entity }}"
-                      data:
-                        value: "{{ door_off_delay - (repeat.index * 10) }}"
-                    - delay:
-                        seconds: 10
+              - service: climate.set_hvac_mode
+                target: !input target_climates
+                data:
+                  hvac_mode: "cool"
+              - if:
+                  - condition: template
+                    value_template: "{{ countdown_entity != '' and countdown_entity is not none }}"
+                then:
+                  - repeat:
+                      count: "{{ (door_off_delay / 10) | int }}"
+                      sequence:
+                        - service: input_number.set_value
+                          target:
+                            entity_id: "{{ countdown_entity }}"
+                          data:
+                            value: "{{ door_off_delay - (repeat.index * 10) }}"
+                        - delay:
+                            seconds: 10
+                  - service: input_number.set_value
+                    target:
+                      entity_id: "{{ countdown_entity }}"
+                    data:
+                      value: 0
+                else:
+                  - delay:
+                      seconds: !input door_off_delay
+            else:
+              - service: homeassistant.turn_off
+                target: !input target_lights
+
               - service: input_number.set_value
                 target:
                   entity_id: "{{ countdown_entity }}"
                 data:
                   value: 0
-            else:
-              - delay:
-                  seconds: !input door_off_delay
-
-          - service: homeassistant.turn_off
-            target: !input target_lights
-
-          - service: input_number.set_value
-            target:
-              entity_id: "{{ countdown_entity }}"
-            data:
-              value: 0
