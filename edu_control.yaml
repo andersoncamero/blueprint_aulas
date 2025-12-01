@@ -496,6 +496,15 @@ action:
                   {%- endfor -%}
                   {{ all_clear.value }}
             then:
+              - service: homeassistant.turn_off
+                target: !input target_lights
+
+              - service: input_number.set_value
+                target:
+                  entity_id: "{{ countdown_entity }}"
+                data:
+                  value: 0
+            else:
               - service: climate.set_hvac_mode
                 target: !input target_climates
                 data:
@@ -522,12 +531,3 @@ action:
                 else:
                   - delay:
                       seconds: !input door_off_delay
-            else:
-              - service: homeassistant.turn_off
-                target: !input target_lights
-
-              - service: input_number.set_value
-                target:
-                  entity_id: "{{ countdown_entity }}"
-                data:
-                  value: 0
