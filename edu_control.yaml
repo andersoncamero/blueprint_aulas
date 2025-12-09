@@ -299,13 +299,13 @@ action:
                 value_template: "{{ countdown_entity != '' and countdown_entity is not none }}"
             then:
               - repeat:
-                  count: "{{ (scanning_time) | int }}"
+                  count: "{{ (scanning_time / 10) | int }}"
                   sequence:
                     - service: input_number.set_value
                       target:
                         entity_id: "{{ countdown_entity }}"
                       data:
-                        value: "{{ scanning_time -  10 }}"
+                        value: "{{ scanning_time - (repeat.index * 10) }}"
                     - delay:
                         seconds: 10
               - service: input_number.set_value
