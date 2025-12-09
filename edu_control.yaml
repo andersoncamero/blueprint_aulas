@@ -67,7 +67,7 @@ blueprint:
           mode: slider
 
     off_delay:
-      name: Tiempo de apagado
+      name: tiempo de Scan
       description: "Tiempo de espera antes de considerar el aula libre tras no detectar presencia."
       default: 300
       selector:
@@ -120,20 +120,6 @@ mode: restart
 max_exceeded: silent
 
 trigger:
-  # - platform: state
-  #   entity_id: !input motion_sensors
-  #   to:
-  #     - "on"
-  #     - "detected"
-  #   id: "motion_detected"
-
-  # - platform: state
-  #   entity_id: !input motion_sensors
-  #   to:
-  #     - "off"
-  #     - "clear"
-  #   id: "motion_cleared"
-
   - platform: state
     entity_id: !input door_sensor
     from: "off"
@@ -313,13 +299,13 @@ action:
                 value_template: "{{ countdown_entity != '' and countdown_entity is not none }}"
             then:
               - repeat:
-                  count: "{{ (scanning_time / 10) | int }}"
+                  count: "{{ (scanning_time) | int }}"
                   sequence:
                     - service: input_number.set_value
                       target:
                         entity_id: "{{ countdown_entity }}"
                       data:
-                        value: "{{ scanning_time - (repeat.index * 10) }}"
+                        value: "{{ scanning_time -  10 }}"
                     - delay:
                         seconds: 10
               - service: input_number.set_value
@@ -367,7 +353,6 @@ action:
                   - condition: template
                     value_template: "{{ states(previous_status_entity) == 'OCUPADO' and states(modo_auto) == 'on'}}"
                 then:
-                  # Guardar estado anterior antes de cambiar
                   - if:
                       - condition: template
                         value_template: "{{ previous_status_entity != '' and previous_status_entity is not none }}"
@@ -416,11 +401,6 @@ action:
                         data:
                           option: "OCUPADO"
 
- 
-
-
-
-
       # Condición para cuando se selecciona manualmente LIBRE
       - conditions:
           - condition: trigger
@@ -428,13 +408,11 @@ action:
           - condition: template
             value_template: "{{ not is_blueprint_change }}"
         sequence:
-          # 1. Apagar clima inmediatamente
           - service: climate.set_hvac_mode
             target: !input target_climates
             data:
               hvac_mode: "off"
 
-          # 2. Inicializar countdown si existe
           - if:
               - condition: template
                 value_template: "{{ countdown_entity != '' and countdown_entity is not none }}"
@@ -445,7 +423,6 @@ action:
                 data:
                   value: "{{ door_off_delay }}"
 
-          # 3. Esperar CON chequeo continuo de movimiento y actualización de countdown
           - repeat:
               while:
                 - condition: template
@@ -476,7 +453,6 @@ action:
                 - delay:
                     seconds: 5
                 
-                # Actualizar countdown si existe
                 - if:
                     - condition: template
                       value_template: "{{ countdown_entity != '' and countdown_entity is not none }}"
@@ -487,7 +463,6 @@ action:
                       data:
                         value: "{{ [states(countdown_entity) | float(0) - 5, 0] | max }}"
 
-          # 4. Resetear countdown
           - if:
               - condition: template
                 value_template: "{{ countdown_entity != '' and countdown_entity is not none }}"
@@ -497,8 +472,6 @@ action:
                   entity_id: "{{ countdown_entity }}"
                 data:
                   value: 0
-
-          # 5. Verificar el resultado: ¿se detectó movimiento o expiró el timeout?
           - if:
               - condition: template
                 value_template: >-
@@ -516,21 +489,16 @@ action:
                   {%- endfor -%}
                   {{ any_motion.value }}
             then:
-              # HAY MOVIMIENTO - Cambiar a OCUPADO inmediatamente
               - if:
                   - condition: template
                     value_template: "{{ states(modo_auto) == 'on' }}"
                 then:
-                  # Encender clima
+
                   - service: climate.set_temperature
                     target: !input target_climates
                     data:
                       temperature: !input target_temperature
                       hvac_mode: "cool"
-                  
-                  # Encender luces
-                  - service: homeassistant.turn_on
-                    target: !input target_lights
 
               # Guardar estado anterior
               - if:
@@ -543,13 +511,12 @@ action:
                     data:
                       value: "{{ states(status_entity) }}"
 
-              # Cambiar a OCUPADO
+
               - service: input_select.select_option
                 target:
                   entity_id: !input classroom_status
                 data:
                   option: "OCUPADO"
             else:
-              # NO HAY MOVIMIENTO - Apagar luces
               - service: homeassistant.turn_off
                 target: !input target_lights
