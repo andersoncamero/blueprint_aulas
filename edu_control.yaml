@@ -416,6 +416,11 @@ action:
                         data:
                           option: "OCUPADO"
 
+ 
+
+
+
+
       # Condición para cuando se selecciona manualmente LIBRE
       - conditions:
           - condition: trigger
@@ -428,29 +433,78 @@ action:
             data:
               hvac_mode: "off"
 
+          # Usar wait_template en lugar de delay para poder interrumpir
           - if:
               - condition: template
                 value_template: "{{ countdown_entity != '' and countdown_entity is not none }}"
             then:
+
+              - service: input_number.set_value
+                target:
+                  entity_id: "{{ countdown_entity }}"
+                data:
+                  value: "{{ door_off_delay }}"
+
+              - wait_template: >-
+                  {%- set motion_entities = motion_sensors_list -%}
+                  {%- if motion_entities is string -%}
+                    {%- set motion_list = [motion_entities] -%}
+                  {%- else -%}
+                    {%- set motion_list = motion_entities -%}
+                  {%- endif -%}
+                  {%- set any_motion = namespace(value=false) -%}
+                  {%- for sensor in motion_list -%}
+                    {%- if states(sensor) in ['on', 'detected'] -%}
+                      {%- set any_motion.value = true -%}
+                    {%- endif -%}
+                  {%- endfor -%}
+                  {{ any_motion.value }}
+                timeout: "{{ door_off_delay }}"
+                continue_on_timeout: true
+
+              # Actualizar countdown durante la espera (cada 5 segundos)
               - repeat:
-                  count: "{{ (door_off_delay / 10) | int }}"
+                  while:
+                    - condition: template
+                      value_template: >-
+                        {{ states(countdown_entity) | float(0) > 0 and 
+                           not (motion_sensors_list | select('is_state', 'on') | list | length > 0 or
+                                motion_sensors_list | select('is_state', 'detected') | list | length > 0) }}
                   sequence:
+                    - delay:
+                        seconds: 5
                     - service: input_number.set_value
                       target:
                         entity_id: "{{ countdown_entity }}"
                       data:
-                        value: "{{ door_off_delay - (repeat.index * 10) }}"
-                    - delay:
-                        seconds: 10
+                        value: "{{ [states(countdown_entity) | float(0) - 5, 0] | max }}"
+
+              # Resetear countdown
               - service: input_number.set_value
                 target:
                   entity_id: "{{ countdown_entity }}"
                 data:
                   value: 0
             else:
-              - delay:
-                  seconds: !input door_off_delay
+              # Sin countdown visual, solo wait_template
+              - wait_template: >-
+                  {%- set motion_entities = motion_sensors_list -%}
+                  {%- if motion_entities is string -%}
+                    {%- set motion_list = [motion_entities] -%}
+                  {%- else -%}
+                    {%- set motion_list = motion_entities -%}
+                  {%- endif -%}
+                  {%- set any_motion = namespace(value=false) -%}
+                  {%- for sensor in motion_list -%}
+                    {%- if states(sensor) in ['on', 'detected'] -%}
+                      {%- set any_motion.value = true -%}
+                    {%- endif -%}
+                  {%- endfor -%}
+                  {{ any_motion.value }}
+                timeout: "{{ door_off_delay }}"
+                continue_on_timeout: true
 
+          # Verificar el resultado: ¿se detectó movimiento o expiró el timeout?
           - if:
               - condition: template
                 value_template: >-
@@ -460,30 +514,50 @@ action:
                   {%- else -%}
                     {%- set motion_list = motion_entities -%}
                   {%- endif -%}
-                  {%- set all_clear = namespace(value=true) -%}
+                  {%- set any_motion = namespace(value=false) -%}
                   {%- for sensor in motion_list -%}
-                    {%- if states(sensor) not in ['off', 'clear', 'unavailable'] -%}
-                      {%- set all_clear.value = false -%}
+                    {%- if states(sensor) in ['on', 'detected'] -%}
+                      {%- set any_motion.value = true -%}
                     {%- endif -%}
                   {%- endfor -%}
-                  {{ all_clear.value }}
+                  {{ any_motion.value }}
             then:
-              - service: homeassistant.turn_off
-                target: !input target_lights
+              # HAY MOVIMIENTO - Cambiar a OCUPADO inmediatamente
+              - if:
+                  - condition: template
+                    value_template: "{{ countdown_entity != '' and countdown_entity is not none }}"
+                then:
+                  - service: input_number.set_value
+                    target:
+                      entity_id: "{{ countdown_entity }}"
+                    data:
+                      value: 0
 
-              - service: input_number.set_value
-                target:
-                  entity_id: "{{ countdown_entity }}"
-                data:
-                  value: 0
-            else:
-              - service: climate.set_hvac_mode
-                target: !input target_climates
-                data:
-                  hvac_mode: "cool"
+              - if:
+                  - condition: template
+                    value_template: "{{ states(modo_auto) == 'on' }}"
+                then:
+                  - service: climate.set_temperature
+                    target: !input target_climates
+                    data:
+                      temperature: !input target_temperature
+                      hvac_mode: "cool"
+
+              - if:
+                  - condition: template
+                    value_template: "{{ previous_status_entity != '' and previous_status_entity is not none }}"
+                then:
+                  - service: input_text.set_value
+                    target:
+                      entity_id: "{{ previous_status_entity }}"
+                    data:
+                      value: "{{ states(status_entity) }}"
+
               - service: input_select.select_option
                 target:
                   entity_id: !input classroom_status
                 data:
                   option: "OCUPADO"
-
+            else:
+              - service: homeassistant.turn_off
+                target: !input target_lights
