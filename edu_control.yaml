@@ -182,6 +182,12 @@ action:
               - condition: template
                 value_template: "{{ countdown_entity != '' and countdown_entity is not none }}"
             then:
+              - service: input_number.set_value
+                target:
+                  entity_id: "{{ countdown_entity }}"
+                data:
+                  value: "{{ door_off_delay }}"
+
               - repeat:
                   count: "{{ (door_off_delay / 10) | int }}"
                   sequence:
@@ -298,6 +304,12 @@ action:
               - condition: template
                 value_template: "{{ countdown_entity != '' and countdown_entity is not none }}"
             then:
+              - service: input_number.set_value
+                target:
+                  entity_id: "{{ countdown_entity }}"
+                data:
+                  value: "{{ scanning_time }}"
+                  
               - repeat:
                   count: "{{ (scanning_time / 10) | int }}"
                   sequence:
