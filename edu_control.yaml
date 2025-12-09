@@ -422,144 +422,144 @@ action:
 
 
       # Condición para cuando se selecciona manualmente LIBRE
-- conditions:
-    - condition: trigger
-      id: "manual_libre_selected"
-    - condition: template
-      value_template: "{{ not is_blueprint_change }}"
-  sequence:
-    - service: climate.set_hvac_mode
-      target: !input target_climates
-      data:
-        hvac_mode: "off"
+      - conditions:
+          - condition: trigger
+            id: "manual_libre_selected"
+          - condition: template
+            value_template: "{{ not is_blueprint_change }}"
+        sequence:
+          - service: climate.set_hvac_mode
+            target: !input target_climates
+            data:
+              hvac_mode: "off"
 
-    # Inicializar countdown si existe
-    - if:
-        - condition: template
-          value_template: "{{ countdown_entity != '' and countdown_entity is not none }}"
-      then:
-        - service: input_number.set_value
-          target:
-            entity_id: "{{ countdown_entity }}"
-          data:
-            value: "{{ door_off_delay }}"
+          # Inicializar countdown si existe
+          - if:
+              - condition: template
+                value_template: "{{ countdown_entity != '' and countdown_entity is not none }}"
+            then:
+              - service: input_number.set_value
+                target:
+                  entity_id: "{{ countdown_entity }}"
+                data:
+                  value: "{{ door_off_delay }}"
 
-    # ÚNICA ESPERA - Con actualización paralela del countdown
-    - parallel:
-        - sequence:
-            # Espera interrumpible por movimiento
-            - wait_template: >-
-                {%- set motion_entities = motion_sensors_list -%}
-                {%- if motion_entities is string -%}
-                  {%- set motion_list = [motion_entities] -%}
-                {%- else -%}
-                  {%- set motion_list = motion_entities -%}
-                {%- endif -%}
-                {%- set any_motion = namespace(value=false) -%}
-                {%- for sensor in motion_list -%}
-                  {%- if states(sensor) in ['on', 'detected'] -%}
-                    {%- set any_motion.value = true -%}
+          # ÚNICA ESPERA - Con actualización paralela del countdown
+          - parallel:
+              - sequence:
+                  # Espera interrumpible por movimiento
+                  - wait_template: >-
+                      {%- set motion_entities = motion_sensors_list -%}
+                      {%- if motion_entities is string -%}
+                        {%- set motion_list = [motion_entities] -%}
+                      {%- else -%}
+                        {%- set motion_list = motion_entities -%}
+                      {%- endif -%}
+                      {%- set any_motion = namespace(value=false) -%}
+                      {%- for sensor in motion_list -%}
+                        {%- if states(sensor) in ['on', 'detected'] -%}
+                          {%- set any_motion.value = true -%}
+                        {%- endif -%}
+                      {%- endfor -%}
+                      {{ any_motion.value }}
+                    timeout: "{{ door_off_delay }}"
+                    continue_on_timeout: true
+
+              - sequence:
+                  # Actualización paralela del countdown (solo si existe)
+                  - condition: template
+                    value_template: "{{ countdown_entity != '' and countdown_entity is not none }}"
+                  
+                  - repeat:
+                      count: "{{ (door_off_delay / 5) | int }}"
+                      sequence:
+                        - delay:
+                            seconds: 5
+                        
+                        # Verificar si hay movimiento antes de actualizar
+                        - if:
+                            - condition: template
+                              value_template: >-
+                                {%- set motion_entities = motion_sensors_list -%}
+                                {%- if motion_entities is string -%}
+                                  {%- set motion_list = [motion_entities] -%}
+                                {%- else -%}
+                                  {%- set motion_list = motion_entities -%}
+                                {%- endif -%}
+                                {%- set any_motion = namespace(value=false) -%}
+                                {%- for sensor in motion_list -%}
+                                  {%- if states(sensor) in ['on', 'detected'] -%}
+                                    {%- set any_motion.value = true -%}
+                                  {%- endif -%}
+                                {%- endfor -%}
+                                {{ any_motion.value }}
+                          then:
+                            # Si hay movimiento, detener actualización
+                            - stop: "Movimiento detectado"
+                        
+                        - service: input_number.set_value
+                          target:
+                            entity_id: "{{ countdown_entity }}"
+                          data:
+                            value: "{{ [door_off_delay - ((repeat.index) * 5), 0] | max }}"
+
+          # Resetear countdown
+          - if:
+              - condition: template
+                value_template: "{{ countdown_entity != '' and countdown_entity is not none }}"
+            then:
+              - service: input_number.set_value
+                target:
+                  entity_id: "{{ countdown_entity }}"
+                data:
+                  value: 0
+
+          # Verificar el resultado: ¿se detectó movimiento o expiró el timeout?
+          - if:
+              - condition: template
+                value_template: >-
+                  {%- set motion_entities = motion_sensors_list -%}
+                  {%- if motion_entities is string -%}
+                    {%- set motion_list = [motion_entities] -%}
+                  {%- else -%}
+                    {%- set motion_list = motion_entities -%}
                   {%- endif -%}
-                {%- endfor -%}
-                {{ any_motion.value }}
-              timeout: "{{ door_off_delay }}"
-              continue_on_timeout: true
-
-        - sequence:
-            # Actualización paralela del countdown (solo si existe)
-            - condition: template
-              value_template: "{{ countdown_entity != '' and countdown_entity is not none }}"
-            
-            - repeat:
-                count: "{{ (door_off_delay / 5) | int }}"
-                sequence:
-                  - delay:
-                      seconds: 5
-                  
-                  # Verificar si hay movimiento antes de actualizar
-                  - if:
-                      - condition: template
-                        value_template: >-
-                          {%- set motion_entities = motion_sensors_list -%}
-                          {%- if motion_entities is string -%}
-                            {%- set motion_list = [motion_entities] -%}
-                          {%- else -%}
-                            {%- set motion_list = motion_entities -%}
-                          {%- endif -%}
-                          {%- set any_motion = namespace(value=false) -%}
-                          {%- for sensor in motion_list -%}
-                            {%- if states(sensor) in ['on', 'detected'] -%}
-                              {%- set any_motion.value = true -%}
-                            {%- endif -%}
-                          {%- endfor -%}
-                          {{ any_motion.value }}
-                    then:
-                      # Si hay movimiento, detener actualización
-                      - stop: "Movimiento detectado"
-                  
-                  - service: input_number.set_value
-                    target:
-                      entity_id: "{{ countdown_entity }}"
+                  {%- set any_motion = namespace(value=false) -%}
+                  {%- for sensor in motion_list -%}
+                    {%- if states(sensor) in ['on', 'detected'] -%}
+                      {%- set any_motion.value = true -%}
+                    {%- endif -%}
+                  {%- endfor -%}
+                  {{ any_motion.value }}
+            then:
+              # HAY MOVIMIENTO - Cambiar a OCUPADO
+              - if:
+                  - condition: template
+                    value_template: "{{ states(modo_auto) == 'on' }}"
+                then:
+                  - service: climate.set_temperature
+                    target: !input target_climates
                     data:
-                      value: "{{ [door_off_delay - ((repeat.index) * 5), 0] | max }}"
+                      temperature: !input target_temperature
+                      hvac_mode: "cool"
 
-    # Resetear countdown
-    - if:
-        - condition: template
-          value_template: "{{ countdown_entity != '' and countdown_entity is not none }}"
-      then:
-        - service: input_number.set_value
-          target:
-            entity_id: "{{ countdown_entity }}"
-          data:
-            value: 0
+              - if:
+                  - condition: template
+                    value_template: "{{ previous_status_entity != '' and previous_status_entity is not none }}"
+                then:
+                  - service: input_text.set_value
+                    target:
+                      entity_id: "{{ previous_status_entity }}"
+                    data:
+                      value: "{{ states(status_entity) }}"
 
-    # Verificar el resultado: ¿se detectó movimiento o expiró el timeout?
-    - if:
-        - condition: template
-          value_template: >-
-            {%- set motion_entities = motion_sensors_list -%}
-            {%- if motion_entities is string -%}
-              {%- set motion_list = [motion_entities] -%}
-            {%- else -%}
-              {%- set motion_list = motion_entities -%}
-            {%- endif -%}
-            {%- set any_motion = namespace(value=false) -%}
-            {%- for sensor in motion_list -%}
-              {%- if states(sensor) in ['on', 'detected'] -%}
-                {%- set any_motion.value = true -%}
-              {%- endif -%}
-            {%- endfor -%}
-            {{ any_motion.value }}
-      then:
-        # HAY MOVIMIENTO - Cambiar a OCUPADO
-        - if:
-            - condition: template
-              value_template: "{{ states(modo_auto) == 'on' }}"
-          then:
-            - service: climate.set_temperature
-              target: !input target_climates
-              data:
-                temperature: !input target_temperature
-                hvac_mode: "cool"
-
-        - if:
-            - condition: template
-              value_template: "{{ previous_status_entity != '' and previous_status_entity is not none }}"
-          then:
-            - service: input_text.set_value
-              target:
-                entity_id: "{{ previous_status_entity }}"
-              data:
-                value: "{{ states(status_entity) }}"
-
-        - service: input_select.select_option
-          target:
-            entity_id: !input classroom_status
-          data:
-            option: "OCUPADO"
-      else:
-        # NO HAY MOVIMIENTO - Apagar luces
-        - service: homeassistant.turn_off
-          target: !input target_lights
+              - service: input_select.select_option
+                target:
+                  entity_id: !input classroom_status
+                data:
+                  option: "OCUPADO"
+            else:
+              # NO HAY MOVIMIENTO - Apagar luces
+              - service: homeassistant.turn_off
+                target: !input target_lights
 
