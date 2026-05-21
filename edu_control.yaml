@@ -156,6 +156,8 @@ action:
       scanning_time: !input off_delay
       door_off_delay: !input door_off_delay
 
+      previous_status: "{{ states(status_entity) }}"
+
       is_blueprint_change: >-
         {{ trigger.id in ['door_opened', 'door_closed'] }}
 
@@ -165,14 +167,15 @@ action:
           - condition: trigger
             id: "door_opened"
         sequence:
-          - if:
+          - alias: "Encender luces y clima si estaba libre y auto"
+            if:
               - condition: template
-                value_template: "{{ states(status_entity) == 'LIBRE' and states(modo_auto) == 'on'}}"
+                value_template: "{{ is_state(status_entity, 'LIBRE') and is_state(modo_auto, 'on') }}"
             then:
-              - service: homeassistant.turn_on
+              - action: homeassistant.turn_on
                 target: !input target_lights
 
-              - service: climate.set_temperature
+              - action: climate.set_temperature
                 target: !input target_climates
                 data:
                   temperature: !input target_temperature
@@ -182,7 +185,7 @@ action:
               - condition: template
                 value_template: "{{ countdown_entity != '' and countdown_entity is not none }}"
             then:
-              - service: input_number.set_value
+              - action: input_number.set_value
                 target:
                   entity_id: "{{ countdown_entity }}"
                 data:
@@ -191,14 +194,14 @@ action:
               - repeat:
                   count: "{{ (door_off_delay / 10) | int }}"
                   sequence:
-                    - service: input_number.set_value
+                    - action: input_number.set_value
                       target:
                         entity_id: "{{ countdown_entity }}"
                       data:
                         value: "{{ door_off_delay - (repeat.index * 10) }}"
                     - delay:
                         seconds: 10
-              - service: input_number.set_value
+              - action: input_number.set_value
                 target:
                   entity_id: "{{ countdown_entity }}"
                 data:
@@ -207,29 +210,33 @@ action:
               - delay:
                   seconds: !input door_off_delay
 
-          - service: climate.set_hvac_mode
+          - alias: "Apagar clima"
+            action: climate.set_hvac_mode
             target: !input target_climates
             data:
               hvac_mode: "off"
 
-          - delay:
+          - alias: "Esperar antes de apagar luces"
+            delay:
               seconds: !input delay_off_device
 
-          - service: homeassistant.turn_off
+          - alias: "Apagar luces"
+            action: homeassistant.turn_off
             target: !input target_lights
 
-          # Guardar estado anterior antes de cambiar
+          # Actualizar helper visual (opcional) con el estado anterior
           - if:
               - condition: template
                 value_template: "{{ previous_status_entity != '' and previous_status_entity is not none }}"
             then:
-              - service: input_text.set_value
+              - action: input_text.set_value
                 target:
                   entity_id: "{{ previous_status_entity }}"
                 data:
-                  value: "{{ states(status_entity) }}"
+                  value: "{{ previous_status }}"
 
-          - service: input_select.select_option
+          - alias: "Cambiar estado a PUERTA_ABIERTA"
+            action: input_select.select_option
             target:
               entity_id: !input classroom_status
             data:
@@ -246,7 +253,7 @@ action:
               - condition: template
                 value_template: >-
                   {%- set light_entities = lights_list.entity_id if lights_list.entity_id is defined else [] -%}
-                  {%- if light_entities and states(modo_auto) == 'on' and states(previous_status_entity) != 'OCUPADO' and states(status_entity) == "PUERTA_ABIERTA" -%}
+                  {%- if light_entities and is_state(modo_auto, 'on') and previous_status != 'OCUPADO' and is_state(status_entity, 'PUERTA_ABIERTA') -%}
                     {%- if light_entities is string -%}
                       {%- set light_list = [light_entities] -%}
                     {%- else -%}
@@ -254,7 +261,7 @@ action:
                     {%- endif -%}
                     {%- set any_off = namespace(value=false) -%}
                     {%- for light in light_list -%}
-                      {%- if states(light) in ['off', 'unavailable'] -%}
+                        {%- if is_state(light, 'off') or is_state(light, 'unavailable') -%}
                         {%- set any_off.value = true -%}
                       {%- endif -%}
                     {%- endfor -%}
@@ -263,26 +270,31 @@ action:
                     {{ false }}
                   {%- endif -%}
             then:
-              - service: homeassistant.turn_on
+              - action: homeassistant.turn_on
                 target: !input target_lights
 
           - if:
               - condition: template
                 value_template: "{{ previous_status_entity != '' and previous_status_entity is not none }}"
             then:
-              - service: input_text.set_value
+              - action: input_text.set_value
                 target:
                   entity_id: "{{ previous_status_entity }}"
                 data:
                   value: "{{ states(status_entity) }}"
 
-          - service: input_number.set_value
-            target:
-              entity_id: "{{ countdown_entity }}"
-            data:
-              value: 0
+          - if:
+              - condition: template
+                value_template: "{{ countdown_entity != '' and countdown_entity is not none }}"
+            then:
+              - action: input_number.set_value
+                target:
+                  entity_id: "{{ countdown_entity }}"
+                data:
+                  value: 0
 
-          - service: input_select.select_option
+          - alias: "Cambiar estado a SCAN"
+            action: input_select.select_option
             target:
               entity_id: !input classroom_status
             data:
@@ -292,9 +304,37 @@ action:
               seconds: !input delay_on_device
           - if:
               - condition: template
-                value_template: "{{ states(modo_auto) == 'on'}}"
+                value_template: >-
+                  {% if is_state(modo_auto, 'on') %}
+                    {% if previous_status == 'LIBRE' %}
+                      true
+                    {% elif previous_status == 'PUERTA_ABIERTA' %}
+                      {%- set climate_entities = climate_list.entity_id if climate_list.entity_id is defined else [] -%}
+                      {%- if climate_entities -%}
+                        {%- if climate_entities is string -%}
+                          {%- set climate_ids = [climate_entities] -%}
+                        {%- else -%}
+                          {%- set climate_ids = climate_entities -%}
+                        {%- endif -%}
+                        {%- set any_off = namespace(value=false) -%}
+                        {%- for c in climate_ids -%}
+                          {%- if is_state(c, 'off') -%}
+                            {%- set any_off.value = true -%}
+                          {%- endif -%}
+                        {%- endfor -%}
+                        {{ any_off.value }}
+                      {%- else -%}
+                        false
+                      {%- endif -%}
+                    {% else %}
+                      false
+                    {% endif %}
+                  {% else %}
+                    false
+                  {% endif %}
             then:
-              - service: climate.set_temperature
+              - alias: "Encender clima tras cerrar puerta (estado anterior válido)"
+                action: climate.set_temperature
                 target: !input target_climates
                 data:
                   temperature: !input target_temperature
@@ -304,7 +344,7 @@ action:
               - condition: template
                 value_template: "{{ countdown_entity != '' and countdown_entity is not none }}"
             then:
-              - service: input_number.set_value
+              - action: input_number.set_value
                 target:
                   entity_id: "{{ countdown_entity }}"
                 data:
@@ -313,14 +353,14 @@ action:
               - repeat:
                   count: "{{ (scanning_time / 10) | int }}"
                   sequence:
-                    - service: input_number.set_value
+                    - action: input_number.set_value
                       target:
                         entity_id: "{{ countdown_entity }}"
                       data:
                         value: "{{ scanning_time - (repeat.index * 10) }}"
                     - delay:
                         seconds: 10
-              - service: input_number.set_value
+              - action: input_number.set_value
                 target:
                   entity_id: "{{ countdown_entity }}"
                 data:
@@ -340,7 +380,7 @@ action:
                   {%- endif -%}
                   {%- set all_clear = namespace(value=true) -%}
                   {%- for sensor in motion_list -%}
-                    {%- if states(sensor) not in ['off', 'clear', 'unavailable'] -%}
+                    {%- if is_state(sensor, 'off') == false and is_state(sensor, 'clear') == false and is_state(sensor, 'unavailable') == false -%}
                       {%- set all_clear.value = false -%}
                     {%- endif -%}
                   {%- endfor -%}
@@ -350,32 +390,34 @@ action:
                   - condition: template
                     value_template: "{{ previous_status_entity != '' and previous_status_entity is not none }}"
                 then:
-                  - service: input_text.set_value
+                  - action: input_text.set_value
                     target:
                       entity_id: "{{ previous_status_entity }}"
                     data:
-                      value: "{{ states(status_entity) }}"
-              - service: input_select.select_option
-                target:
-                  entity_id: !input classroom_status
-                data:
-                  option: "LIBRE"
+                      value: "{{ previous_status }}"
+          - alias: "Cambiar estado a LIBRE"
+            action: input_select.select_option
+            target:
+              entity_id: !input classroom_status
+            data:
+              option: "LIBRE"
             else:
               - if:
                   - condition: template
-                    value_template: "{{ states(previous_status_entity) == 'OCUPADO' and states(modo_auto) == 'on'}}"
+                    value_template: "{{ previous_status == 'OCUPADO' and is_state(modo_auto, 'on') }}"
                 then:
                   - if:
                       - condition: template
                         value_template: "{{ previous_status_entity != '' and previous_status_entity is not none }}"
                     then:
-                      - service: input_text.set_value
+                      - action: input_text.set_value
                         target:
                           entity_id: "{{ previous_status_entity }}"
                         data:
-                          value: "{{ states(status_entity) }}"
+                          value: "{{ previous_status }}"
 
-                  - service: input_select.select_option
+                  - alias: "Cambiar estado a OCUPADO"
+                    action: input_select.select_option
                     target:
                       entity_id: !input classroom_status
                     data:
@@ -383,31 +425,33 @@ action:
                 else:
                   - if:
                       - condition: template
-                        value_template: "{{ states(previous_status_entity) == 'LIBRE' and states(modo_auto) == 'on'}}"
+                        value_template: "{{ previous_status == 'LIBRE' and is_state(modo_auto, 'on') }}"
                     then:
-                      - service: climate.set_temperature
+                      - action: climate.set_temperature
                         target: !input target_climates
                         data:
                           temperature: !input target_temperature
                           hvac_mode: "cool"
-                      # Guardar estado anterior antes de cambiar
+                      # Actualizar helper visual (opcional)
                       - if:
                           - condition: template
                             value_template: "{{ previous_status_entity != '' and previous_status_entity is not none }}"
                         then:
-                          - service: input_text.set_value
+                          - action: input_text.set_value
                             target:
                               entity_id: "{{ previous_status_entity }}"
                             data:
-                              value: "{{ states(status_entity) }}"
+                              value: "{{ previous_status }}"
 
-                      - service: input_select.select_option
+                      - alias: "Cambiar estado a OCUPADO (desde LIBRE)"
+                        action: input_select.select_option
                         target:
                           entity_id: !input classroom_status
                         data:
                           option: "OCUPADO"
                     else:
-                      - service: input_select.select_option
+                      - alias: "Cambiar estado a OCUPADO (default)"
+                        action: input_select.select_option
                         target:
                           entity_id: !input classroom_status
                         data:
@@ -420,7 +464,8 @@ action:
           - condition: template
             value_template: "{{ not is_blueprint_change }}"
         sequence:
-          - service: climate.set_hvac_mode
+          - alias: "Apagar clima al seleccionar LIBRE"
+            action: climate.set_hvac_mode
             target: !input target_climates
             data:
               hvac_mode: "off"
@@ -429,7 +474,7 @@ action:
               - condition: template
                 value_template: "{{ countdown_entity != '' and countdown_entity is not none }}"
             then:
-              - service: input_number.set_value
+              - action: input_number.set_value
                 target:
                   entity_id: "{{ countdown_entity }}"
                 data:
@@ -447,7 +492,7 @@ action:
                     {%- endif -%}
                     {%- set any_motion = namespace(value=false) -%}
                     {%- for sensor in motion_list -%}
-                      {%- if states(sensor) in ['on', 'detected'] -%}
+                    {%- if is_state(sensor, 'on') or is_state(sensor, 'detected') -%}
                         {%- set any_motion.value = true -%}
                       {%- endif -%}
                     {%- endfor -%}
@@ -455,10 +500,10 @@ action:
                 
                 - condition: template
                   value_template: >-
-                    {% if countdown_entity != '' and countdown_entity is not none %}
+                      {% if countdown_entity != '' and countdown_entity is not none %}
                       {{ states(countdown_entity) | float(0) > 0 }}
                     {% else %}
-                      {{ (as_timestamp(now()) - as_timestamp(states.automation[this.entity_id.split('.')[1]].attributes.last_triggered | default(now()))) < door_off_delay }}
+                      {{ (as_timestamp(now()) - as_timestamp(state_attr(this.entity_id, 'last_triggered') | default(now()))) < door_off_delay }}
                     {% endif %}
               
               sequence:
@@ -469,7 +514,7 @@ action:
                     - condition: template
                       value_template: "{{ countdown_entity != '' and countdown_entity is not none }}"
                   then:
-                    - service: input_number.set_value
+                    - action: input_number.set_value
                       target:
                         entity_id: "{{ countdown_entity }}"
                       data:
@@ -479,7 +524,7 @@ action:
               - condition: template
                 value_template: "{{ countdown_entity != '' and countdown_entity is not none }}"
             then:
-              - service: input_number.set_value
+              - action: input_number.set_value
                 target:
                   entity_id: "{{ countdown_entity }}"
                 data:
@@ -495,7 +540,7 @@ action:
                   {%- endif -%}
                   {%- set any_motion = namespace(value=false) -%}
                   {%- for sensor in motion_list -%}
-                    {%- if states(sensor) in ['on', 'detected'] -%}
+                    {%- if is_state(sensor, 'on') or is_state(sensor, 'detected') -%}
                       {%- set any_motion.value = true -%}
                     {%- endif -%}
                   {%- endfor -%}
@@ -503,32 +548,34 @@ action:
             then:
               - if:
                   - condition: template
-                    value_template: "{{ states(modo_auto) == 'on' }}"
+                    value_template: "{{ is_state(modo_auto, 'on') }}"
                 then:
 
-                  - service: climate.set_temperature
+                  - action: climate.set_temperature
                     target: !input target_climates
                     data:
                       temperature: !input target_temperature
                       hvac_mode: "cool"
 
-              # Guardar estado anterior
+              # Actualizar helper visual (opcional)
               - if:
                   - condition: template
                     value_template: "{{ previous_status_entity != '' and previous_status_entity is not none }}"
                 then:
-                  - service: input_text.set_value
+                  - action: input_text.set_value
                     target:
                       entity_id: "{{ previous_status_entity }}"
                     data:
-                      value: "{{ states(status_entity) }}"
+                      value: "{{ previous_status }}"
 
 
-              - service: input_select.select_option
+              - alias: "Cambiar estado a OCUPADO (movimiento detectado)"
+                action: input_select.select_option
                 target:
                   entity_id: !input classroom_status
                 data:
                   option: "OCUPADO"
             else:
-              - service: homeassistant.turn_off
+              - alias: "Apagar luces (sin movimiento)"
+                action: homeassistant.turn_off
                 target: !input target_lights
