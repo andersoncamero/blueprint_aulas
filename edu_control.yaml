@@ -395,12 +395,12 @@ action:
                       entity_id: "{{ previous_status_entity }}"
                     data:
                       value: "{{ previous_status }}"
-          - alias: "Cambiar estado a LIBRE"
-            action: input_select.select_option
-            target:
-              entity_id: !input classroom_status
-            data:
-              option: "LIBRE"
+              - alias: "Cambiar estado a LIBRE"
+                action: input_select.select_option
+                target:
+                  entity_id: !input classroom_status
+                data:
+                  option: "LIBRE"
             else:
               - if:
                   - condition: template
@@ -415,7 +415,6 @@ action:
                           entity_id: "{{ previous_status_entity }}"
                         data:
                           value: "{{ previous_status }}"
-
                   - alias: "Cambiar estado a OCUPADO"
                     action: input_select.select_option
                     target:
@@ -432,7 +431,6 @@ action:
                         data:
                           temperature: !input target_temperature
                           hvac_mode: "cool"
-                      # Actualizar helper visual (opcional)
                       - if:
                           - condition: template
                             value_template: "{{ previous_status_entity != '' and previous_status_entity is not none }}"
@@ -442,7 +440,6 @@ action:
                               entity_id: "{{ previous_status_entity }}"
                             data:
                               value: "{{ previous_status }}"
-
                       - alias: "Cambiar estado a OCUPADO (desde LIBRE)"
                         action: input_select.select_option
                         target:
