@@ -499,12 +499,7 @@ action:
                     {{ not any_motion.value }}
                 
                 - condition: template
-                  value_template: >-
-                      {% if countdown_entity != '' and countdown_entity is not none %}
-                      {{ states(countdown_entity) | float(0) > 0 }}
-                    {% else %}
-                      {{ (as_timestamp(now()) - as_timestamp(state_attr(this.entity_id, 'last_triggered') | default(now()))) < door_off_delay }}
-                    {% endif %}
+                  value_template: "{% if countdown_entity != '' and countdown_entity is not none %}{{ states(countdown_entity) | float(0) > 0 }}{% else %}{{ (as_timestamp(now()) - as_timestamp(state_attr(this.entity_id, 'last_triggered') | default(now()))) < door_off_delay }}{% endif %}"
               
               sequence:
                 - delay:
